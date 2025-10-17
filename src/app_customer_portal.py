@@ -21,105 +21,102 @@ st.set_page_config(layout="wide", page_title="My Insurance Portal", page_icon="�
 # Custom CSS
 st.markdown("""
 <style>
+    /* Consistent text sizing */
+    .stMarkdown p, .stText, div[data-testid="stMarkdownContainer"] p {
+        font-size: 0.95rem !important;
+        line-height: 1.5;
+    }
+    
+    /* Reduce padding in info boxes */
+    div[data-testid="stAlert"] {
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    /* Smaller metric cards */
+    div[data-testid="stMetric"] {
+        padding: 0.5rem !important;
+    }
+    
+    /* Compact expanders */
+    div[data-testid="stExpander"] {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 0.5rem !important;
+        margin: 0.5rem 0;
+    }
+    
+    /* Main header styling */
     .main-header {
         background: linear-gradient(90deg, #FF6B6B 0%, #4ECDC4 100%);
         color: white;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
     }
+    .main-header h1 {
+        font-size: 1.75rem;
+        margin: 0;
+    }
+    .main-header p {
+        font-size: 0.95rem !important;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    /* Chat message styling */
     .chat-user {
         background-color: #E3F2FD;
-        padding: 10px;
-        border-radius: 10px;
-        margin: 10px 0;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        margin: 0.5rem 0;
         text-align: right;
+        font-size: 0.9rem;
     }
     .chat-bot {
         background-color: #F1F8E9;
-        padding: 10px;
-        border-radius: 10px;
-        margin: 10px 0;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
     }
+    
+    /* Ad card styling */
     .ad-card {
         border: 2px solid #4ECDC4;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
         background: white;
     }
-    .policy-card {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        background: #fafafa;
+    .ad-card h4 {
+        font-size: 1.1rem;
+        margin: 0.25rem 0;
     }
-    .chat-widget {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-    }
-    .chat-icon {
-        width: 70px;
-        height: 70px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        animation: pulse 2s infinite;
-        font-size: 32px;
-    }
-    .chat-icon:hover {
-        transform: scale(1.1);
-    }
-    @keyframes pulse {
-        0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-        50% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.8); }
-    }
-    .chat-panel {
-        position: fixed;
-        bottom: 0;
-        right: 0;
-        width: 400px;
-        height: 600px;
-        background: white;
-        border-radius: 10px 0 0 0;
-        box-shadow: -2px 0 10px rgba(0,0,0,0.2);
-        z-index: 999;
-        display: flex;
-        flex-direction: column;
-    }
-    .chat-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px;
-        border-radius: 10px 0 0 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .chat-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 15px;
-        background: #f8f9fa;
-    }
-    .chat-input-area {
-        padding: 15px;
-        border-top: 1px solid #ddd;
-        background: white;
-    }
+    
+    /* Metric cards */
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 20px;
-        border-radius: 10px;
+        padding: 1rem;
+        border-radius: 8px;
         text-align: center;
+    }
+    .metric-card h3 {
+        font-size: 1.5rem;
+        margin: 0.25rem 0;
+    }
+    .metric-card p {
+        font-size: 0.9rem !important;
+        margin: 0.25rem 0;
+    }
+    
+    /* Compact dataframes */
+    div[data-testid="stDataFrame"] {
+        font-size: 0.9rem;
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        padding-top: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -145,10 +142,22 @@ def simulate_chatbot_response(user_message, user_data):
 def simulate_image_generation(prompt):
     """Simulate Stable Diffusion image generation"""
     # In production: call Amazon Bedrock with Stable Diffusion
-    # Return placeholder image URL
-    colors = ["FF6B6B", "4ECDC4", "45B7D1", "96CEB4", "FFEAA7"]
-    color = random.choice(colors)
-    return f"https://via.placeholder.com/400x300/{color}/FFF?text={prompt[:20].replace(' ', '+')}"
+    # Map product types to relevant Unsplash images
+    image_map = {
+        'Travel Insurance': 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop&q=80',  # Airplane wing
+        'Life Insurance': 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=300&fit=crop&q=80',  # Family silhouette
+        'Pet Insurance': 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=400&h=300&fit=crop&q=80',  # Dog
+        'Dental Insurance': 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=400&h=300&fit=crop&q=80',  # Dentist
+        'Critical Illness': 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&h=300&fit=crop&q=80',  # Medical
+    }
+    
+    # Find matching product type in prompt
+    for product_type, url in image_map.items():
+        if product_type.lower() in prompt.lower():
+            return url
+    
+    # Default to travel image if no match
+    return image_map['Travel Insurance']
 
 def simulate_ad_copy_generation(product_type):
     """Simulate Titan text generation for ads"""
@@ -266,6 +275,81 @@ def main():
         chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
         st.metric("Chat Messages", chat_count)
     
+    # Cacti Bot in top-right corner (before tabs)
+    col_main, col_chat = st.columns([10, 1])
+    
+    with col_chat:
+        with st.popover("🌵", help="Chat with Cacti Bot", use_container_width=True):
+            st.markdown("### 🌵 Cacti Bot")
+            st.caption("Your AI Insurance Assistant")
+            st.caption("*Powered by Amazon Bedrock (Claude 3)*")
+            
+            st.markdown("---")
+            
+            # Chat input form (moved to top)
+            st.markdown("**✍️ Send a Message:**")
+            user_message = st.text_area(
+                "Your question:", 
+                placeholder="Ask about policies, claims, renewals...",
+                height=80,
+                key="chat_input_popover",
+                label_visibility="collapsed"
+            )
+            
+            if st.button("📤 Send", type="primary", use_container_width=True):
+                if user_message:
+                    # Simulate AI response
+                    user_data = {
+                        'policies': policies,
+                        'name': party.name,
+                        'email': user.email
+                    }
+                    
+                    response = simulate_chatbot_response(user_message, user_data)
+                    
+                    # Save to database
+                    new_chat = ChatMessage(
+                        user_id=user.id,
+                        message=user_message,
+                        response=response,
+                        timestamp=datetime.now(),
+                        is_user=True,
+                        model_used='Claude 3 (Simulated)'
+                    )
+                    session.add(new_chat)
+                    session.commit()
+                    
+                    st.success("✅ Sent!")
+                    st.rerun()
+                else:
+                    st.warning("Please type a message first")
+            
+            st.markdown("---")
+            
+            # Chat history (moved to bottom, collapsed by default)
+            chat_history = session.query(ChatMessage).filter(
+                ChatMessage.user_id == user.id
+            ).order_by(ChatMessage.timestamp.desc()).limit(10).all()
+            
+            if chat_history:
+                with st.expander("💬 Recent Conversations", expanded=False):
+                    # Display in reverse (oldest first)
+                    for chat in reversed(chat_history[-5:]):
+                        st.markdown(f"""
+                        <div style='background: #E3F2FD; padding: 8px; border-radius: 6px; margin: 4px 0; text-align: right;'>
+                            <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
+                            <strong>You:</strong> {chat.message[:80]}{"..." if len(chat.message) > 80 else ""}
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown(f"""
+                        <div style='background: #F1F8E9; padding: 8px; border-radius: 6px; margin: 4px 0;'>
+                            <strong>🌵 Cacti:</strong> {chat.response[:100]}{"..." if len(chat.response) > 100 else ""}
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.caption("💬 No chat history yet. Ask me anything!")
+    
     # Top Navigation using Tabs
     tab1, tab2, tab3, tab4 = st.tabs([
         "🏠 Dashboard",
@@ -316,7 +400,7 @@ def main():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.info("💬 **Need Help?**\n\nClick the 🌵 button at the bottom-right to chat with Cacti Bot!")
+            st.info("💬 **Need Help?**\n\nClick the 🌵 button at the top-right to chat with Cacti Bot!")
         
         with col2:
             st.info("📋 **Manage Policies**\n\nUse the tabs above to view your policies, special offers, and account")
@@ -621,133 +705,6 @@ def main():
             # Additional stats
             policy_count = len(policies)
             st.metric("Total Policies", policy_count)
-    
-    # ======================
-    # FLOATING CACTI BOT (BOTTOM-RIGHT POPOVER)
-    # Shows on ALL pages
-    # ======================
-    
-    # Position in bottom-right corner using columns
-    st.markdown("---")
-    col1, col2, col3 = st.columns([8, 1, 1])
-    
-    with col3:
-        with st.popover("🌵", help="Chat with Cacti Bot", use_container_width=True):
-            st.markdown("### 🌵 Cacti Bot")
-            st.caption("Your AI Insurance Assistant")
-            st.caption("*Powered by Amazon Bedrock (Claude 3)*")
-            
-            st.markdown("---")
-            
-            # Chat history
-            chat_history = session.query(ChatMessage).filter(
-                ChatMessage.user_id == user.id
-            ).order_by(ChatMessage.timestamp.desc()).limit(10).all()
-            
-            if chat_history:
-                st.markdown("**💬 Recent Conversations:**")
-                # Display in reverse (oldest first)
-                for chat in reversed(chat_history[-5:]):
-                    st.markdown(f"""
-                    <div style='background: #E3F2FD; padding: 10px; border-radius: 8px; margin: 5px 0; text-align: right;'>
-                        <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
-                        <strong>You:</strong> {chat.message[:80]}{"..." if len(chat.message) > 80 else ""}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    st.markdown(f"""
-                    <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin: 5px 0;'>
-                        <strong>🌵 Cacti:</strong> {chat.response[:100]}{"..." if len(chat.response) > 100 else ""}
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                st.markdown("---")
-            else:
-                st.info("👋 No chat history yet. Ask me anything!")
-            
-            # Chat input form
-            st.markdown("**✍️ Send a Message:**")
-            user_message = st.text_area(
-                "Your question:", 
-                placeholder="Ask about policies, claims, renewals...",
-                height=100,
-                key="chat_input_popover",
-                label_visibility="collapsed"
-            )
-            
-            col_send, col_examples = st.columns([1, 1])
-            
-            with col_send:
-                if st.button("📤 Send", type="primary", use_container_width=True):
-                    if user_message:
-                        # Simulate AI response
-                        user_data = {
-                            'policies': policies,
-                            'name': party.name,
-                            'email': user.email
-                        }
-                        
-                        response = simulate_chatbot_response(user_message, user_data)
-                        
-                        # Save to database
-                        new_chat = ChatMessage(
-                            user_id=user.id,
-                            message=user_message,
-                            response=response,
-                            timestamp=datetime.now(),
-                            is_user=True,
-                            model_used='Claude 3 (Simulated)'
-                        )
-                        session.add(new_chat)
-                        session.commit()
-                        
-                        st.success("✅ Sent!")
-                        st.rerun()
-                    else:
-                        st.warning("Please type a message first")
-            
-            # Quick action buttons
-            st.markdown("---")
-            st.markdown("**💡 Quick Questions:**")
-            
-            if st.button("📋 My Policies", use_container_width=True, key="q1_pop"):
-                new_msg = ChatMessage(
-                    user_id=user.id,
-                    message="What are my current insurance policies?",
-                    response=simulate_chatbot_response("What are my current insurance policies?", {'policies': policies, 'name': party.name, 'email': user.email}),
-                    timestamp=datetime.now(),
-                    is_user=True,
-                    model_used='Claude 3 (Simulated)'
-                )
-                session.add(new_msg)
-                session.commit()
-                st.rerun()
-            
-            if st.button("📅 Renewal Info", use_container_width=True, key="q2_pop"):
-                new_msg = ChatMessage(
-                    user_id=user.id,
-                    message="When is my next policy renewal?",
-                    response=simulate_chatbot_response("When is my next policy renewal?", {'policies': policies, 'name': party.name, 'email': user.email}),
-                    timestamp=datetime.now(),
-                    is_user=True,
-                    model_used='Claude 3 (Simulated)'
-                )
-                session.add(new_msg)
-                session.commit()
-                st.rerun()
-            
-            if st.button("📞 Contact Agent", use_container_width=True, key="q3_pop"):
-                new_msg = ChatMessage(
-                    user_id=user.id,
-                    message="How can I contact my insurance agent?",
-                    response=simulate_chatbot_response("How can I contact my insurance agent?", {'policies': policies, 'name': party.name, 'email': user.email}),
-                    timestamp=datetime.now(),
-                    is_user=True,
-                    model_used='Claude 3 (Simulated)'
-                )
-                session.add(new_msg)
-                session.commit()
-                st.rerun()
     
     session.close()
 

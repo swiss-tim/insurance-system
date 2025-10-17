@@ -459,8 +459,8 @@ def seed_data():
             party_id=maria.id,
             email='maria.weber@example.com',
             password_hash='$2b$12$demo_hash_only',  # Demo only - not real security
-            avatar_url='https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
-            avatar_prompt='Professional woman with glasses',
+            avatar_url='https://api.dicebear.com/7.x/notionists/svg?seed=Maria&backgroundColor=b6e3f4',
+            avatar_prompt='Professional business portrait',
             last_login=datetime.datetime(2024, 1, 15, 10, 30)
         )
         session.add(customer_user)
@@ -572,7 +572,7 @@ def seed_data():
             user_id=customer_user.id,
             product_type='Travel Insurance',
             image_prompt='Vacation beach scene with protection shield overlay',
-            image_url='https://via.placeholder.com/400x300/FF6B6B/FFF?text=Travel+Insurance',
+            image_url='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop&q=80',
             ad_copy="✈️ **Planning a Trip?** Protect your adventures with comprehensive Travel Insurance!\n\n✓ Medical emergencies abroad\n✓ Trip cancellation coverage\n✓ Lost luggage protection\n✓ 24/7 global assistance\n\nStarting from just CHF 45 per trip. Get a quote in 2 minutes!",
             generated_at=datetime.datetime(2024, 1, 15, 8, 0),
             clicked=False
@@ -582,7 +582,7 @@ def seed_data():
             user_id=customer_user.id,
             product_type='Life Insurance',
             image_prompt='Family protection and security illustration',
-            image_url='https://via.placeholder.com/400x300/4ECDC4/FFF?text=Life+Insurance',
+            image_url='https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=300&fit=crop&q=80',
             ad_copy="🛡️ **Protect Your Family's Future**\n\nSecure your loved ones with affordable Life Insurance coverage.\n\n✓ Guaranteed payout to beneficiaries\n✓ Optional critical illness coverage\n✓ Flexible premium payments\n✓ Tax advantages\n\nGet personalized quotes based on your needs. Cover up to 10x your annual income!",
             generated_at=datetime.datetime(2024, 1, 15, 8, 0),
             clicked=False
