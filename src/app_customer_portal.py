@@ -264,9 +264,7 @@ def main():
         "👤 My Account"
     ])
     
-    # Initialize chat widget state
-    if 'chat_open' not in st.session_state:
-        st.session_state.chat_open = False
+    # No need for chat_open state with popover
     
     # ======================
     # PAGE 1: DASHBOARD
@@ -310,9 +308,8 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("💬 Chat with Cacti Bot", use_container_width=True):
-                st.session_state.chat_open = True
-                st.rerun()
+            # Chat button now uses popover
+            st.markdown("💬 **Chat with Cacti Bot** — Click the 🌵 button in the bottom right!")
         
         with col2:
             if st.button("📄 View Policies", use_container_width=True):
@@ -369,168 +366,7 @@ def main():
             st.info("No recent activity. Start a conversation with Cacti Bot!")
     
     # ======================
-    # FLOATING CACTI BOT WIDGET
-    # ======================
-    
-    # Floating chat icon (always visible)
-    chat_container = st.container()
-    with chat_container:
-        col1, col2 = st.columns([6, 1])
-        with col2:
-            if st.button("🌵", key="chat_toggle", help="Chat with Cacti Bot"):
-                st.session_state.chat_open = not st.session_state.chat_open
-    
-    # Chat panel (conditional)
-    if st.session_state.chat_open:
-        with st.sidebar:
-            st.markdown("---")
-            st.markdown("### 🌵 Cacti Bot")
-            st.caption("Your AI Insurance Assistant")
-            
-            # Chat history in sidebar
-            chat_history = session.query(ChatMessage).filter(
-                ChatMessage.user_id == user.id
-            ).order_by(ChatMessage.timestamp).all()
-            
-            # Scrollable chat history
-            chat_container = st.container()
-            with chat_container:
-                for chat in chat_history[-5:]:  # Show last 5 messages
-                    with st.expander(f"💬 {chat.timestamp.strftime('%H:%M')}", expanded=False):
-                        st.markdown(f"**You:** {chat.message}")
-                        st.markdown(f"**Bot:** {chat.response[:100]}...")
-            
-            st.markdown("---")
-            
-            # Chat input
-            user_message = st.text_input("💬 Ask me anything:", placeholder="e.g., What are my policies?", key="chat_input")
-            
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                send_button = st.button("Send", type="primary", use_container_width=True)
-            with col2:
-                if st.button("Close", use_container_width=True):
-                    st.session_state.chat_open = False
-                    st.rerun()
-            
-            if send_button and user_message:
-                # Simulate AI response
-                user_data = {
-                    'policies': policies,
-                    'name': party.name,
-                    'email': user.email
-                }
-                
-                response = simulate_chatbot_response(user_message, user_data)
-                
-                # Save to database
-                new_chat = ChatMessage(
-                    user_id=user.id,
-                    message=user_message,
-                    response=response,
-                    timestamp=datetime.now(),
-                    is_user=True,
-                    model_used='Claude 3 (Simulated)'
-                )
-                session.add(new_chat)
-                session.commit()
-                
-                st.success("Message sent!")
-                st.rerun()
-            
-            # Example prompts
-            st.markdown("**💡 Try:**")
-            if st.button("What are my policies?", use_container_width=True):
-                st.session_state.example_q = "What are my current policies?"
-                st.rerun()
-            if st.button("When is my renewal?", use_container_width=True):
-                st.session_state.example_q = "When is my home insurance renewal?"
-                st.rerun()
-    
-    # ======================
-    # OLD CACTI BOT PAGE (REMOVED)
-    # ======================
-    elif page == "💬 Cacti Bot" and False:  # Disabled - now using floating widget
-        st.markdown('<div class="main-header"><h1>🌵 Cacti Bot</h1><p>Your AI-powered insurance assistant</p></div>', unsafe_allow_html=True)
-        
-        st.markdown("### Chat with Cacti Bot")
-        st.caption("Powered by Amazon Bedrock (Claude 3) - Ask me anything about your insurance!")
-        
-        # Load chat history
-        chat_history = session.query(ChatMessage).filter(
-            ChatMessage.user_id == user.id
-        ).order_by(ChatMessage.timestamp).all()
-        
-        # Display chat history
-        for chat in chat_history:
-            st.markdown(f"""
-            <div class="chat-user">
-                <strong>You:</strong> {chat.message}
-                <br><small>{chat.timestamp.strftime('%Y-%m-%d %H:%M')}</small>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="chat-bot">
-                <strong>🌵 Cacti Bot:</strong> {chat.response}
-                <br><small>Model: {chat.model_used or 'Claude 3'}</small>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Chat input
-        st.markdown("---")
-        
-        user_message = st.text_input("💬 Type your question:", placeholder="e.g., What are my policy details?")
-        
-        col1, col2 = st.columns([1, 4])
-        
-        with col1:
-            send_button = st.button("Send", type="primary")
-        
-        if send_button and user_message:
-            # Simulate AI response
-            user_data = {
-                'policies': policies,
-                'name': party.name,
-                'email': user.email
-            }
-            
-            response = simulate_chatbot_response(user_message, user_data)
-            
-            # Save to database
-            new_chat = ChatMessage(
-                user_id=user.id,
-                message=user_message,
-                response=response,
-                timestamp=datetime.now(),
-                is_user=True,
-                model_used='Claude 3 (Simulated)'
-            )
-            session.add(new_chat)
-            session.commit()
-            
-            st.success("Message sent! Refreshing...")
-            st.rerun()
-        
-        # Example prompts
-        st.markdown("---")
-        st.markdown("**💡 Try asking:**")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("What are my policies?"):
-                st.session_state.example_q = "What are my current policies?"
-        
-        with col2:
-            if st.button("When is my renewal?"):
-                st.session_state.example_q = "When is my home insurance renewal?"
-        
-        with col3:
-            if st.button("How do I file a claim?"):
-                st.session_state.example_q = "How do I file a claim?"
-    
-    # ======================
-    # PAGE 3: MY POLICIES
+    # PAGE 2: MY POLICIES
     # ======================
     elif page == "📋 My Policies":
         st.markdown('<div class="main-header"><h1>📋 My Insurance Policies</h1></div>', unsafe_allow_html=True)
@@ -644,7 +480,7 @@ def main():
                             st.info("Claim filing redirected to Cacti Bot for assistance!")
     
     # ======================
-    # PAGE 4: SPECIAL OFFERS
+    # PAGE 3: SPECIAL OFFERS
     # ======================
     elif page == "🎯 Special Offers":
         st.markdown('<div class="main-header"><h1>🎯 Special Offers</h1><p>AI-personalized recommendations just for you</p></div>', unsafe_allow_html=True)
@@ -713,7 +549,7 @@ def main():
                 st.rerun()
     
     # ======================
-    # PAGE 5: MY ACCOUNT
+    # PAGE 4: MY ACCOUNT
     # ======================
     elif page == "👤 My Account":
         st.markdown('<div class="main-header"><h1>👤 My Account</h1></div>', unsafe_allow_html=True)
@@ -775,50 +611,132 @@ def main():
             chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
             st.metric("Cacti Bot Conversations", chat_count)
     
-    # Floating Chat Button (Always visible at bottom right)
-    st.markdown("""
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
-        <div style="
-            width: 70px; 
-            height: 70px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            cursor: pointer;
-            animation: pulse 2s infinite;
-            font-size: 32px;
-        ">
-            🌵
-        </div>
-        <div style="
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #FF6B6B;
-            color: white;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        ">
-            💬
-        </div>
-    </div>
-    <style>
-    @keyframes pulse {
-        0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-        50% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.8); }
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # ======================
+    # FLOATING CACTI BOT (BOTTOM-RIGHT POPOVER)
+    # Shows on ALL pages
+    # ======================
+    
+    # Position in bottom-right corner using columns
+    st.markdown("---")
+    col1, col2, col3 = st.columns([8, 1, 1])
+    
+    with col3:
+        with st.popover("🌵", help="Chat with Cacti Bot", use_container_width=True):
+            st.markdown("### 🌵 Cacti Bot")
+            st.caption("Your AI Insurance Assistant")
+            st.caption("*Powered by Amazon Bedrock (Claude 3)*")
+            
+            st.markdown("---")
+            
+            # Chat history
+            chat_history = session.query(ChatMessage).filter(
+                ChatMessage.user_id == user.id
+            ).order_by(ChatMessage.timestamp.desc()).limit(10).all()
+            
+            if chat_history:
+                st.markdown("**💬 Recent Conversations:**")
+                # Display in reverse (oldest first)
+                for chat in reversed(chat_history[-5:]):
+                    st.markdown(f"""
+                    <div style='background: #E3F2FD; padding: 10px; border-radius: 8px; margin: 5px 0; text-align: right;'>
+                        <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
+                        <strong>You:</strong> {chat.message[:80]}{"..." if len(chat.message) > 80 else ""}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown(f"""
+                    <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin: 5px 0;'>
+                        <strong>🌵 Cacti:</strong> {chat.response[:100]}{"..." if len(chat.response) > 100 else ""}
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("---")
+            else:
+                st.info("👋 No chat history yet. Ask me anything!")
+            
+            # Chat input form
+            st.markdown("**✍️ Send a Message:**")
+            user_message = st.text_area(
+                "Your question:", 
+                placeholder="Ask about policies, claims, renewals...",
+                height=100,
+                key="chat_input_popover",
+                label_visibility="collapsed"
+            )
+            
+            col_send, col_examples = st.columns([1, 1])
+            
+            with col_send:
+                if st.button("📤 Send", type="primary", use_container_width=True):
+                    if user_message:
+                        # Simulate AI response
+                        user_data = {
+                            'policies': policies,
+                            'name': party.name,
+                            'email': user.email
+                        }
+                        
+                        response = simulate_chatbot_response(user_message, user_data)
+                        
+                        # Save to database
+                        new_chat = ChatMessage(
+                            user_id=user.id,
+                            message=user_message,
+                            response=response,
+                            timestamp=datetime.now(),
+                            is_user=True,
+                            model_used='Claude 3 (Simulated)'
+                        )
+                        session.add(new_chat)
+                        session.commit()
+                        
+                        st.success("✅ Sent!")
+                        st.rerun()
+                    else:
+                        st.warning("Please type a message first")
+            
+            # Quick action buttons
+            st.markdown("---")
+            st.markdown("**💡 Quick Questions:**")
+            
+            if st.button("📋 My Policies", use_container_width=True, key="q1_pop"):
+                new_msg = ChatMessage(
+                    user_id=user.id,
+                    message="What are my current insurance policies?",
+                    response=simulate_chatbot_response("What are my current insurance policies?", {'policies': policies, 'name': party.name, 'email': user.email}),
+                    timestamp=datetime.now(),
+                    is_user=True,
+                    model_used='Claude 3 (Simulated)'
+                )
+                session.add(new_msg)
+                session.commit()
+                st.rerun()
+            
+            if st.button("📅 Renewal Info", use_container_width=True, key="q2_pop"):
+                new_msg = ChatMessage(
+                    user_id=user.id,
+                    message="When is my next policy renewal?",
+                    response=simulate_chatbot_response("When is my next policy renewal?", {'policies': policies, 'name': party.name, 'email': user.email}),
+                    timestamp=datetime.now(),
+                    is_user=True,
+                    model_used='Claude 3 (Simulated)'
+                )
+                session.add(new_msg)
+                session.commit()
+                st.rerun()
+            
+            if st.button("📞 Contact Agent", use_container_width=True, key="q3_pop"):
+                new_msg = ChatMessage(
+                    user_id=user.id,
+                    message="How can I contact my insurance agent?",
+                    response=simulate_chatbot_response("How can I contact my insurance agent?", {'policies': policies, 'name': party.name, 'email': user.email}),
+                    timestamp=datetime.now(),
+                    is_user=True,
+                    model_used='Claude 3 (Simulated)'
+                )
+                session.add(new_msg)
+                session.commit()
+                st.rerun()
     
     session.close()
 
