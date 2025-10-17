@@ -126,19 +126,28 @@ st.markdown("""
 def simulate_chatbot_response(user_message, user_data):
     """Simulate Cacti Bot using Claude"""
     # In production: call Amazon Bedrock with Claude 3
-    responses = {
-        "policies": f"You have {len(user_data['policies'])} active policies. Would you like details on any specific policy?",
-        "claim": "To file a claim, please provide: 1) Date of incident, 2) Description, 3) Photos if available. I can help you through the process!",
-        "renewal": "Your policies are set to renew on Dec 31, 2024. We'll send renewal notices 30 days before expiration.",
-        "coverage": "Your current coverage includes home and auto insurance. Would you like to add travel or life insurance?",
-    }
     
-    # Simple keyword matching (real AI would be much smarter)
-    for key, response in responses.items():
-        if key in user_message.lower():
-            return response
+    # Convert message to lowercase for matching
+    message_lower = user_message.lower().strip()
     
-    return "I'm here to help! You can ask me about your policies, file claims, request changes, or get quotes for new coverage."
+    # Check for keywords in order of specificity
+    if "renewal" in message_lower or "renew" in message_lower:
+        return "Your policies are set to renew on **Dec 31, 2024**. We'll send renewal notices 30 days before expiration. Your current annual premium is CHF 2,050. Would you like to discuss renewal options?"
+    
+    if "policies" in message_lower or "policy" in message_lower:
+        return f"You have **{len(user_data['policies'])} active policies**: Home Insurance and Auto Insurance. Would you like details on any specific policy?"
+    
+    if "claim" in message_lower:
+        return "To file a claim, please provide:\n1. Date of incident\n2. Description of what happened\n3. Photos if available\n\nI can help guide you through the process step-by-step!"
+    
+    if "coverage" in message_lower:
+        return "Your current coverage includes **Home Insurance** and **Auto Insurance**. Would you like to add Travel Insurance or Life Insurance? I can get you a quote in seconds!"
+    
+    if "premium" in message_lower or "cost" in message_lower or "price" in message_lower:
+        return "Your total annual premium is **CHF 2,050** across all policies. This includes comprehensive coverage for your home and vehicle. Would you like a breakdown?"
+    
+    # Default response
+    return "I'm here to help! You can ask me about:\n• Your **policies**\n• **Renewal** dates\n• Filing **claims**\n• Coverage options\n• Getting quotes for new insurance"
 
 def simulate_image_generation(prompt):
     """Simulate Stable Diffusion image generation"""
@@ -387,35 +396,67 @@ def main():
             st.markdown(f"### 👤 {party.name}")
             st.caption(f"📧 {user.email}")
             
-            if user.avatar_url:
-                st.image(user.avatar_url, width=120)
-            
-            st.markdown("---")
-            
-            # Quick Stats
-            st.metric("Active Policies", len(policies))
-            total_premium = sum([p.quote.total_premium for p in policies if p.quote])
-            st.metric("Annual Premium", f"CHF {total_premium:,.0f}")
-            
-            chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
-            st.metric("Chat Messages", chat_count)
-            
             st.markdown("---")
             
             # Manual chat access
             st.markdown("### 💬 Cacti Bot")
-            st.caption("Ask me anything!")
             
-            # Chat input
-            user_message = st.text_area(
-                "Your question:", 
-                placeholder="Ask about policies, renewals...",
-                height=80,
-                key="sidebar_chat_input"
-            )
+            st.markdown("---")
             
-            if st.button("📤 Send", type="primary", use_container_width=True):
-                if user_message:
+            # Chat history - Show conversation history FIRST
+            chat_history = session.query(ChatMessage).filter(
+                ChatMessage.user_id == user.id
+            ).order_by(ChatMessage.timestamp.desc()).limit(10).all()
+            
+            if chat_history:
+                # Show older chats in expander first
+                if len(chat_history) > 3:
+                    with st.expander(f"📜 View {len(chat_history) - 3} older messages"):
+                        for chat in reversed(chat_history[:-3]):
+                            st.markdown(f"""
+                            <div style='background: #E3F2FD; padding: 6px; border-radius: 6px; margin: 3px 0; text-align: right; border-right: 2px solid #2196F3;'>
+                                <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
+                                <strong>You:</strong> {chat.message[:50]}{"..." if len(chat.message) > 50 else ""}
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            st.markdown(f"""
+                            <div style='background: #E8F5E9; padding: 6px; border-radius: 6px; margin: 3px 0; border-left: 2px solid #4CAF50;'>
+                                <strong>🌵:</strong> {chat.response[:50]}{"..." if len(chat.response) > 50 else ""}
+                            </div>
+                            """, unsafe_allow_html=True)
+                
+                # Show most recent 3 exchanges (scrollable)
+                for chat in reversed(chat_history[-3:]):
+                    st.markdown(f"""
+                    <div style='background: #E3F2FD; padding: 10px; border-radius: 8px; margin: 6px 0; text-align: right; border-right: 3px solid #2196F3;'>
+                        <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
+                        <strong>You:</strong> {chat.message}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown(f"""
+                    <div style='background: #E8F5E9; padding: 10px; border-radius: 8px; margin: 6px 0; border-left: 3px solid #4CAF50;'>
+                        <strong>🌵 Cacti:</strong> {chat.response}
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("👋 Start a conversation! Ask me about policies, renewals, claims, or coverage.")
+            
+            st.markdown("---")
+            
+            # Chat input at BOTTOM (using form to clear after submit)
+            with st.form(key="chat_form", clear_on_submit=True):
+                user_message = st.text_area(
+                    "Type your message:", 
+                    placeholder="Ask about policies, renewals...",
+                    height=80,
+                    label_visibility="collapsed"
+                )
+                
+                submit_button = st.form_submit_button("📤 Send", use_container_width=True, type="primary")
+                
+                if submit_button and user_message:
                     # Simulate AI response
                     user_data = {
                         'policies': policies,
@@ -437,26 +478,7 @@ def main():
                     session.add(new_chat)
                     session.commit()
                     
-                    st.success("✅ Sent!")
                     st.rerun()
-                else:
-                    st.warning("Type a message first")
-            
-            # Chat history
-            chat_history = session.query(ChatMessage).filter(
-                ChatMessage.user_id == user.id
-            ).order_by(ChatMessage.timestamp.desc()).limit(5).all()
-            
-            if chat_history:
-                with st.expander("💬 Recent Chats", expanded=False):
-                    for chat in reversed(chat_history):
-                        st.caption(f"🕒 {chat.timestamp.strftime('%H:%M')}")
-                        st.info(f"**You:** {chat.message[:60]}...")
-                        st.success(f"**Bot:** {chat.response[:60]}...")
-    
-    # Visual indicator when quote is running
-    if st.session_state.quote_flow_active:
-        st.info("🤖 **AI Quote Generation in Progress** → Check the sidebar for live conversation!", icon="💬")
     
     # Top Navigation using Tabs
     tab1, tab2, tab3, tab4 = st.tabs([
