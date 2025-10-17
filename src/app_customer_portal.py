@@ -472,16 +472,42 @@ def main():
                     st.session_state.last_message_time = current_time
                     st.rerun()
             else:
-                # Flow complete
+                # Flow complete - SAVE TO DATABASE for Guidewire backend
+                if 'quote_saved_to_db' not in st.session_state:
+                    st.session_state.quote_saved_to_db = False
+                
+                if not st.session_state.quote_saved_to_db:
+                    # Combine all messages for database storage
+                    user_messages = [msg['text'] for msg in st.session_state.quote_messages if msg['type'] == 'user']
+                    bot_messages = [msg['text'] for msg in st.session_state.quote_messages if msg['type'] == 'bot']
+                    
+                    full_request = f"Quote request for {st.session_state.quote_product}\n" + "\n".join(user_messages)
+                    full_response = "\n\n".join(bot_messages)
+                    
+                    # Save to ChatMessage table
+                    new_chat = ChatMessage(
+                        user_id=user.id,
+                        message=full_request,
+                        response=full_response,
+                        timestamp=datetime.now(),
+                        is_user=True,
+                        model_used='OpenAI GPT-4 (Quote Flow)'
+                    )
+                    session.add(new_chat)
+                    session.commit()
+                    st.session_state.quote_saved_to_db = True
+                
                 st.markdown("---")
                 st.success("✅ **Quote Complete!**")
                 st.caption(f"Generated in ~{len(quote_flows)} seconds")
+                st.info("📊 **Quote saved!** Check the Guidewire Backend to see API processing.")
                 
                 if st.button("🔄 Get Another Quote", use_container_width=True):
                     st.session_state.quote_flow_active = False
                     st.session_state.quote_messages = []
                     st.session_state.quote_step = 0
                     st.session_state.last_message_time = None
+                    st.session_state.quote_saved_to_db = False
                     st.rerun()
         else:
             # NORMAL MODE - User Info & Chat Access

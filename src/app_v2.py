@@ -74,6 +74,12 @@ cases = {
         "icon": "💊",
         "tagline": "Global program with reinsurance tower",
         "color": "#4caf50"
+    },
+    "Case 4: API Integration Demo": {
+        "company": "Live Guidewire Integration",
+        "icon": "🔌",
+        "tagline": "Real-time quote generation via API",
+        "color": "#9c27b0"
     }
 }
 
@@ -89,29 +95,30 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Get the insured party and policy
-insured = None
-for i in [get_party_by_id(1), get_party_by_id(7), get_party_by_id(11)]:
-    if i and i.name == case_info['company']:
-        insured = i
-        break
+# Get the insured party and policy (skip for Case 4)
+if "Case 4" not in selected_case:
+    insured = None
+    for i in [get_party_by_id(1), get_party_by_id(7), get_party_by_id(11)]:
+        if i and i.name == case_info['company']:
+            insured = i
+            break
 
-if not insured:
-    st.error(f"Company '{case_info['company']}' not found in database.")
-    st.stop()
+    if not insured:
+        st.error(f"Company '{case_info['company']}' not found in database.")
+        st.stop()
 
-session = get_session()
-policy_role = session.query(PartyRole).filter(
-    PartyRole.party_id == insured.id,
-    PartyRole.role_name == 'Insured'
-).first()
-session.close()
+    session = get_session()
+    policy_role = session.query(PartyRole).filter(
+        PartyRole.party_id == insured.id,
+        PartyRole.role_name == 'Insured'
+    ).first()
+    session.close()
 
-if not policy_role:
-    st.error("No policy found for this insured.")
-    st.stop()
+    if not policy_role:
+        st.error("No policy found for this insured.")
+        st.stop()
 
-policy = get_policy_details(policy_role.context_id)
+    policy = get_policy_details(policy_role.context_id)
 
 # --- CASE 1: SWISS SME BAKERY ---
 if "Case 1" in selected_case:
@@ -1034,6 +1041,294 @@ elif "Case 3" in selected_case:
                 col4.metric("Pending", f"{pending_count}")
                 
                 st.success("💡 **Benefit**: Instant issuance. Real-time tracking. Better collection rates. Full transparency.")
+
+# --- CASE 4: API INTEGRATION DEMO ---
+elif "Case 4" in selected_case:
+    
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Live Demo Controls")
+    
+    # Auto-refresh toggle
+    auto_refresh = st.sidebar.checkbox("🔄 Auto-refresh (every 2s)", value=False)
+    
+    if auto_refresh:
+        import time
+        time.sleep(2)
+        st.rerun()
+    
+    if st.sidebar.button("🔃 Manual Refresh", use_container_width=True):
+        st.rerun()
+    
+    st.markdown("""
+    ## 🔌 Live Guidewire API Integration Demo
+    
+    **What You're Seeing:** This simulates a Guidewire PolicyCenter backend receiving and processing quotes in real-time.
+    
+    ### 🎯 How to Use This Demo:
+    
+    1. **Open Customer Portal** in another browser tab/window:
+       ```bash
+       streamlit run src/app_customer_portal.py --server.port 8502
+       ```
+    
+    2. **Arrange Windows Side-by-Side:**
+       - This window (port 8501) = Guidewire Backend View
+       - Other window (port 8502) = Customer Portal View
+    
+    3. **Trigger a Quote Request:**
+       - In the Customer Portal, click "Get Free Quote" on any product
+       - Watch this window show the API processing in real-time!
+    
+    ---
+    """)
+    
+    # Query the database for quote activity
+    from seed_database import CustomerUser, ChatMessage
+    session = get_session()
+    
+    # Get Maria's user
+    user = session.query(CustomerUser).filter(CustomerUser.email == 'maria.weber@example.com').first()
+    
+    if not user:
+        st.error("Demo user not found in database")
+        session.close()
+        st.stop()
+    
+    # Check for active quote flows (recent chat messages about quotes)
+    recent_messages = session.query(ChatMessage).filter(
+        ChatMessage.user_id == user.id
+    ).order_by(ChatMessage.timestamp.desc()).limit(5).all()
+    
+    st.markdown("---")
+    
+    # Main dashboard - Guidewire style
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+            <h3 style='margin: 0;'>⏱️ Active</h3>
+            <h2 style='margin: 0.5rem 0;'>2</h2>
+            <p style='margin: 0; font-size: 0.9rem;'>API Connections</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+            <h3 style='margin: 0;'>📋 Pending</h3>
+            <h2 style='margin: 0.5rem 0;'>0</h2>
+            <p style='margin: 0; font-size: 0.9rem;'>Quote Requests</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+            <h3 style='margin: 0;'>✅ Completed</h3>
+            <h2 style='margin: 0.5rem 0;'>{}</h2>
+            <p style='margin: 0; font-size: 0.9rem;'>Today</p>
+        </div>
+        """.format(len(recent_messages)), unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
+            <h3 style='margin: 0;'>⚡ Avg Time</h3>
+            <h2 style='margin: 0.5rem 0;'>12s</h2>
+            <p style='margin: 0; font-size: 0.9rem;'>Quote Generation</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Live Activity Feed
+    st.subheader("🔴 Live Activity Feed")
+    st.caption("Shows real-time API requests from Customer Portal")
+    
+    if len(recent_messages) == 0:
+        st.info("""
+        👆 **Waiting for customer activity...**
+        
+        Open the Customer Portal and click "Get Free Quote" to see this system process the request in real-time!
+        
+        The system will show:
+        1. ⚡ API Request Received
+        2. 🧮 Rating Engine Processing
+        3. 🤖 Automated Underwriting
+        4. ✅ Quote Generated & Delivered
+        """)
+    else:
+        st.success("✅ **System Active** - Displaying recent quote requests")
+        
+        # Show recent activity as a timeline
+        for idx, msg in enumerate(recent_messages):
+            with st.expander(f"🔹 Request #{len(recent_messages) - idx} - {msg.timestamp.strftime('%H:%M:%S')}", expanded=(idx == 0)):
+                st.markdown(f"**Customer:** {user.party.name}")
+                st.markdown(f"**Timestamp:** {msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+                st.markdown(f"**Request:** {msg.message}")
+                
+                # Simulate the processing stages
+                st.markdown("---")
+                st.markdown("### 📊 Processing Pipeline")
+                
+                # Stage 1: API Request
+                st.markdown("""
+                <div style='background: #E3F2FD; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #2196F3;'>
+                    <strong>⚡ Stage 1: API Request Received</strong><br>
+                    <small>Endpoint: POST /api/v1/quote/create</small><br>
+                    <small>Status: ✅ 200 OK</small><br>
+                    <small>Duration: 0.1s</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Stage 2: Rating Engine
+                st.markdown("""
+                <div style='background: #FFF3E0; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #FF9800;'>
+                    <strong>🧮 Stage 2: Rating Engine</strong><br>
+                    <small>Risk factors analyzed: 15</small><br>
+                    <small>Premium calculated: CHF 89-450</small><br>
+                    <small>Duration: 3.2s</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Stage 3: Automated Underwriting
+                st.markdown("""
+                <div style='background: #F3E5F5; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #9C27B0;'>
+                    <strong>🤖 Stage 3: Automated Underwriting</strong><br>
+                    <small>Rules engine: 47 rules checked</small><br>
+                    <small>Decision: ✅ Auto-approved</small><br>
+                    <small>Confidence: 98%</small><br>
+                    <small>Duration: 5.8s</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Stage 4: Quote Generated
+                st.markdown("""
+                <div style='background: #E8F5E9; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #4CAF50;'>
+                    <strong>✅ Stage 4: Quote Generated</strong><br>
+                    <small>Quote ID: QT-{}</small><br>
+                    <small>Policy Terms: Generated</small><br>
+                    <small>Delivered via: Chat API</small><br>
+                    <small>Total Duration: 12.1s</small>
+                </div>
+                """.format(msg.id + 10000), unsafe_allow_html=True)
+                
+                # Show the response
+                st.markdown("---")
+                st.markdown("### 💬 Response Delivered to Customer:")
+                st.info(msg.response)
+                
+                # API Call Details
+                with st.expander("🔍 View API Call Details"):
+                    st.code(f"""
+# Incoming Request
+POST /api/v1/quote/create HTTP/1.1
+Host: guidewire-api.insurancecloud.com
+Authorization: Bearer eyJhbGc...
+Content-Type: application/json
+
+{{
+  "customer_id": "{user.id}",
+  "customer_name": "{user.party.name}",
+  "product_type": "travel_insurance",
+  "request_timestamp": "{msg.timestamp.isoformat()}",
+  "context": {{
+    "existing_policies": 2,
+    "customer_segment": "individual",
+    "channel": "customer_portal"
+  }}
+}}
+
+# Response
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{{
+  "quote_id": "QT-{msg.id + 10000}",
+  "status": "approved",
+  "premium": 89,
+  "currency": "CHF",
+  "valid_until": "2025-11-01",
+  "processing_time_ms": 12100,
+  "underwriting_decision": "auto_approved"
+}}
+                    """, language="http")
+    
+    st.markdown("---")
+    
+    # System Architecture
+    st.subheader("🏗️ System Architecture")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **🌐 Customer Portal (Frontend)**
+        - Streamlit UI
+        - Real-time chat interface
+        - Direct API integration
+        - Session management
+        """)
+        
+        st.markdown("""
+        **📡 API Layer**
+        - RESTful endpoints
+        - Authentication & authorization
+        - Rate limiting
+        - Request validation
+        """)
+    
+    with col2:
+        st.markdown("""
+        **🎯 Guidewire PolicyCenter (Backend)**
+        - Rating engine
+        - Underwriting rules engine
+        - Product configuration
+        - Quote management
+        """)
+        
+        st.markdown("""
+        **💾 Database Layer**
+        - Shared SQLite (demo)
+        - Real-time sync
+        - Transaction management
+        - Audit logging
+        """)
+    
+    st.markdown("---")
+    
+    # Performance Metrics
+    st.subheader("📊 Performance Metrics")
+    
+    metrics_data = {
+        "Metric": ["API Response Time (p50)", "API Response Time (p95)", "API Response Time (p99)", 
+                   "Success Rate", "Auto-approval Rate", "Throughput"],
+        "Current": ["12ms", "45ms", "120ms", "99.8%", "94%", "500 req/min"],
+        "Target": ["<50ms", "<100ms", "<200ms", ">99.5%", ">90%", ">1000 req/min"],
+        "Status": ["✅ Good", "✅ Good", "✅ Good", "✅ Good", "✅ Good", "⚠️ Scaling"]
+    }
+    
+    st.dataframe(pd.DataFrame(metrics_data), use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Benefits Summary
+    st.info("""
+    **💡 Key Benefits of API Integration:**
+    
+    ✅ **Speed:** Quote generation in 12 seconds vs. 2-3 days manual
+    
+    ✅ **Accuracy:** Automated rules engine eliminates human error
+    
+    ✅ **Scale:** Handle 500+ quotes/minute vs. 10-20/day manual
+    
+    ✅ **Customer Experience:** Instant quotes in chat vs. callback next day
+    
+    ✅ **Cost:** 90% reduction in operational costs per quote
+    """)
+    
+    session.close()
 
 # --- Footer ---
 st.markdown("---")
