@@ -217,6 +217,68 @@ class Document(Base):
     related_id = Column(Integer, nullable=False)
     uploader_party_id = Column(Integer, ForeignKey('party.id'))
 
+# --- Customer Portal Tables ---
+
+class CustomerUser(Base):
+    __tablename__ = 'customer_user'
+    id = Column(Integer, primary_key=True)
+    party_id = Column(Integer, ForeignKey('party.id'), nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    avatar_url = Column(String)
+    avatar_prompt = Column(TEXT)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    last_login = Column(TIMESTAMP)
+    party = relationship("Party")
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    generated_ads = relationship("GeneratedAd", back_populates="user", cascade="all, delete-orphan")
+
+class ChatMessage(Base):
+    __tablename__ = 'chat_message'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('customer_user.id', ondelete='CASCADE'), nullable=False)
+    message = Column(TEXT, nullable=False)
+    response = Column(TEXT, nullable=False)
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+    is_user = Column(Boolean, nullable=False)
+    model_used = Column(String)
+    user = relationship("CustomerUser", back_populates="chat_messages")
+
+class GeneratedAd(Base):
+    __tablename__ = 'generated_ad'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('customer_user.id', ondelete='CASCADE'), nullable=False)
+    product_type = Column(String, nullable=False)
+    image_prompt = Column(TEXT)
+    image_url = Column(String)
+    ad_copy = Column(TEXT, nullable=False)
+    generated_at = Column(TIMESTAMP, server_default=func.now())
+    clicked = Column(Boolean, default=False)
+    click_timestamp = Column(TIMESTAMP)
+    user = relationship("CustomerUser", back_populates="generated_ads")
+
+class PolicySummary(Base):
+    __tablename__ = 'policy_summary'
+    id = Column(Integer, primary_key=True)
+    policy_id = Column(Integer, ForeignKey('policy.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('customer_user.id'), nullable=False)
+    summary_text = Column(TEXT, nullable=False)
+    generated_at = Column(TIMESTAMP, server_default=func.now())
+    model_used = Column(String)
+
+class EmailTemplate(Base):
+    __tablename__ = 'email_template'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('customer_user.id', ondelete='CASCADE'), nullable=False)
+    policy_id = Column(Integer, ForeignKey('policy.id'))
+    claim_id = Column(Integer, ForeignKey('claim.id'))
+    template_type = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    body = Column(TEXT, nullable=False)
+    generated_at = Column(TIMESTAMP, server_default=func.now())
+    sent = Column(Boolean, default=False)
+    sent_at = Column(TIMESTAMP)
+
 # --- Data Seeding Function ---
 def seed_data():
     """Seed the database with demo data."""
@@ -381,6 +443,202 @@ def seed_data():
         cc4 = CashCall(claim_id=claim3.id, layer_participant_id=p4.id, call_amount=13320000, currency='CHF', due_date=datetime.date(2023, 11, 30)) # 33.3% of 40M
         cc5 = CashCall(claim_id=claim3.id, layer_participant_id=p5.id, call_amount=13360000, currency='CHF', due_date=datetime.date(2023, 11, 30), status='PAID') # 33.4% of 40M
         session.add_all([cc1, cc2, cc3, cc4, cc5])
+
+        # ==========================================
+        # Case 4: Customer Portal User - Maria Weber
+        # ==========================================
+        print("Seeding Case 4: Customer Portal...")
+        
+        # Create customer party
+        maria = Party(party_type='PERSON', name='Maria Weber', address='45 Waldweg', city='Lucerne', country='Switzerland', phone='+41 41 555 7890', email='maria.weber@example.com')
+        session.add(maria)
+        session.commit()
+        
+        # Create customer user account
+        customer_user = CustomerUser(
+            party_id=maria.id,
+            email='maria.weber@example.com',
+            password_hash='$2b$12$demo_hash_only',  # Demo only - not real security
+            avatar_url='https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
+            avatar_prompt='Professional woman with glasses',
+            last_login=datetime.datetime(2024, 1, 15, 10, 30)
+        )
+        session.add(customer_user)
+        session.commit()
+        
+        # Maria's home insurance policy
+        insurer_casa = Party(party_type='ORGANIZATION', name='Casa Insurance AG', city='Zurich', country='Switzerland')
+        session.add(insurer_casa)
+        session.commit()
+        
+        submission_maria1 = Submission(insured_party_id=maria.id, broker_party_id=None, status='BOUND')
+        session.add(submission_maria1)
+        session.commit()
+        
+        quote_casa = Quote(submission_id=submission_maria1.id, insurer_party_id=insurer_casa.id, total_premium=1200, status='ACCEPTED')
+        session.add(quote_casa)
+        session.commit()
+        
+        policy_home = Policy(
+            policy_number='CH-HOME-2024-001',
+            quote_id=quote_casa.id,
+            effective_date=datetime.date(2024, 1, 1),
+            expiration_date=datetime.date(2024, 12, 31),
+            status='ACTIVE'
+        )
+        session.add(policy_home)
+        session.commit()
+        
+        # Add party role for maria
+        session.add(PartyRole(party_id=maria.id, role_name='Insured', context_table='policy', context_id=policy_home.id))
+        session.add(PartyRole(party_id=insurer_casa.id, role_name='Insurer', context_table='policy', context_id=policy_home.id))
+        session.commit()
+        
+        # Home insurance coverages
+        cov_home_building = Coverage(policy_id=policy_home.id, coverage_type='Building', limit_amount=500000, deductible_amount=1000)
+        cov_home_contents = Coverage(policy_id=policy_home.id, coverage_type='Contents', limit_amount=100000, deductible_amount=500)
+        cov_home_liability = Coverage(policy_id=policy_home.id, coverage_type='Liability', limit_amount=5000000, deductible_amount=0)
+        session.add_all([cov_home_building, cov_home_contents, cov_home_liability])
+        session.commit()
+        
+        # Maria's car insurance policy
+        insurer_drive = Party(party_type='ORGANIZATION', name='DriveSecure Insurance', city='Bern', country='Switzerland')
+        session.add(insurer_drive)
+        session.commit()
+        
+        submission_maria2 = Submission(insured_party_id=maria.id, broker_party_id=None, status='BOUND')
+        session.add(submission_maria2)
+        session.commit()
+        
+        quote_drive = Quote(submission_id=submission_maria2.id, insurer_party_id=insurer_drive.id, total_premium=850, status='ACCEPTED')
+        session.add(quote_drive)
+        session.commit()
+        
+        policy_car = Policy(
+            policy_number='CH-AUTO-2024-002',
+            quote_id=quote_drive.id,
+            effective_date=datetime.date(2024, 1, 1),
+            expiration_date=datetime.date(2024, 12, 31),
+            status='ACTIVE'
+        )
+        session.add(policy_car)
+        session.commit()
+        
+        # Add party roles
+        session.add(PartyRole(party_id=maria.id, role_name='Insured', context_table='policy', context_id=policy_car.id))
+        session.add(PartyRole(party_id=insurer_drive.id, role_name='Insurer', context_table='policy', context_id=policy_car.id))
+        session.commit()
+        
+        # Car insurance coverages
+        cov_car_collision = Coverage(policy_id=policy_car.id, coverage_type='Collision', limit_amount=50000, deductible_amount=1000)
+        cov_car_comprehensive = Coverage(policy_id=policy_car.id, coverage_type='Comprehensive', limit_amount=50000, deductible_amount=500)
+        cov_car_liability = Coverage(policy_id=policy_car.id, coverage_type='Liability', limit_amount=10000000, deductible_amount=0)
+        session.add_all([cov_car_collision, cov_car_comprehensive, cov_car_liability])
+        session.commit()
+        
+        # Maria's chat history with Cacti Bot
+        chat1 = ChatMessage(
+            user_id=customer_user.id,
+            message="What are my current policies?",
+            response="You have 2 active policies:\n\n1. Home Insurance (CH-HOME-2024-001) with Casa Insurance AG\n   - Coverage: Building, Contents, Liability\n   - Annual Premium: CHF 1,200\n   - Expires: Dec 31, 2024\n\n2. Auto Insurance (CH-AUTO-2024-002) with DriveSecure Insurance\n   - Coverage: Collision, Comprehensive, Liability\n   - Annual Premium: CHF 850\n   - Expires: Dec 31, 2024",
+            timestamp=datetime.datetime(2024, 1, 10, 14, 25),
+            is_user=True,
+            model_used='Claude 3'
+        )
+        
+        chat2 = ChatMessage(
+            user_id=customer_user.id,
+            message="When is my home insurance renewal?",
+            response="Your home insurance policy (CH-HOME-2024-001) expires on December 31, 2024. Your renewal is coming up! We'll send you renewal options 30 days before expiration. Would you like to review your coverage now?",
+            timestamp=datetime.datetime(2024, 1, 12, 9, 45),
+            is_user=True,
+            model_used='Claude 3'
+        )
+        
+        chat3 = ChatMessage(
+            user_id=customer_user.id,
+            message="How do I file a claim?",
+            response="To file a claim, you can:\n\n1. Use the 'File a Claim' button in your policy details\n2. Call your insurer directly (number shown in your policy)\n3. Let me help you start the process now\n\nI'll need:\n- Date and time of incident\n- Description of what happened\n- Photos if available\n- Police report number (if applicable)\n\nWould you like to start filing a claim now?",
+            timestamp=datetime.datetime(2024, 1, 14, 16, 10),
+            is_user=True,
+            model_used='Claude 3'
+        )
+        
+        session.add_all([chat1, chat2, chat3])
+        session.commit()
+        
+        # Generated upsell ads for Maria
+        ad1 = GeneratedAd(
+            user_id=customer_user.id,
+            product_type='Travel Insurance',
+            image_prompt='Vacation beach scene with protection shield overlay',
+            image_url='https://via.placeholder.com/400x300/FF6B6B/FFF?text=Travel+Insurance',
+            ad_copy="✈️ **Planning a Trip?** Protect your adventures with comprehensive Travel Insurance!\n\n✓ Medical emergencies abroad\n✓ Trip cancellation coverage\n✓ Lost luggage protection\n✓ 24/7 global assistance\n\nStarting from just CHF 45 per trip. Get a quote in 2 minutes!",
+            generated_at=datetime.datetime(2024, 1, 15, 8, 0),
+            clicked=False
+        )
+        
+        ad2 = GeneratedAd(
+            user_id=customer_user.id,
+            product_type='Life Insurance',
+            image_prompt='Family protection and security illustration',
+            image_url='https://via.placeholder.com/400x300/4ECDC4/FFF?text=Life+Insurance',
+            ad_copy="🛡️ **Protect Your Family's Future**\n\nSecure your loved ones with affordable Life Insurance coverage.\n\n✓ Guaranteed payout to beneficiaries\n✓ Optional critical illness coverage\n✓ Flexible premium payments\n✓ Tax advantages\n\nGet personalized quotes based on your needs. Cover up to 10x your annual income!",
+            generated_at=datetime.datetime(2024, 1, 15, 8, 0),
+            clicked=False
+        )
+        
+        session.add_all([ad1, ad2])
+        session.commit()
+        
+        # Policy summaries (CTI Assistant generated)
+        summary_home = PolicySummary(
+            policy_id=policy_home.id,
+            user_id=customer_user.id,
+            summary_text="**Your Home Insurance at a Glance:**\n\n🏠 **Building Coverage**: CHF 500,000\n- Covers structural damage from fire, water, storms\n- Deductible: CHF 1,000\n\n📦 **Contents Coverage**: CHF 100,000\n- Protects your belongings inside the home\n- Includes furniture, electronics, clothing\n- Deductible: CHF 500\n\n⚖️ **Liability Protection**: CHF 5,000,000\n- Covers accidents on your property\n- Legal defense costs included\n- No deductible\n\n**Important Notes:**\n- Policy covers sudden and accidental damage\n- Regular maintenance issues not covered\n- 24-hour emergency hotline available\n- Annual renewal: December 31, 2024",
+            generated_at=datetime.datetime(2024, 1, 11, 10, 15),
+            model_used='Claude 3 Sonnet'
+        )
+        
+        session.add(summary_home)
+        session.commit()
+        
+        # Email templates (CTI Assistant generated)
+        email1 = EmailTemplate(
+            user_id=customer_user.id,
+            policy_id=policy_home.id,
+            template_type='renewal_inquiry',
+            subject='Home Insurance Renewal - Policy CH-HOME-2024-001',
+            body="""Dear Casa Insurance Team,
+
+I am writing regarding the upcoming renewal of my home insurance policy (Policy Number: CH-HOME-2024-001).
+
+My current policy expires on December 31, 2024, and I would like to:
+- Review my current coverage levels
+- Request a renewal quote for 2025
+- Discuss any available discounts or coverage enhancements
+
+My property details:
+- Address: 45 Waldweg, Lucerne 6000
+- Current building coverage: CHF 500,000
+- Current contents coverage: CHF 100,000
+
+Please send me renewal terms at your earliest convenience. I am available for a call to discuss any questions.
+
+Thank you for your continued service.
+
+Best regards,
+Maria Weber
+Phone: +41 41 555 7890
+Email: maria.weber@example.com""",
+            generated_at=datetime.datetime(2024, 1, 13, 14, 30),
+            sent=False
+        )
+        
+        session.add(email1)
+        session.commit()
+        
+        print("✓ Case 4: Customer Portal data seeded successfully")
 
         session.commit()
         print("Database seeded successfully.")

@@ -1,0 +1,7 @@
+-70% time savings processing vendor invoices for claims - 2.5 hours saved per claim
+-Effortlessly manage plan  requotes during underwriting by entering broker requests, reducing effort by 80%
+-Configure business rules, such as plan validation criteria, by directly uploading Excel files or through natural language processing, achieving a 90% reduction in manual setup time
+-93% reduction in time to set up a task or reminder
+-9 minutes saved per claims user everyday by using Copilot to  write and refine communications
+-70% time savings when creating 70%a Personal Auto quote - only three minutes from start to finish 
+-adjuster workbench capabilities will be updated with a genAI tool for claim summarization

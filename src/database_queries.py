@@ -6,7 +6,8 @@ from seed_database import (
     Base, Party, Policy, Quote, Submission, Claim, Coverage, 
     InsurableAsset, AssetLocation, AssetDetail, ClaimDetail, 
     FinancialTransaction, Subrogation, PolicyInsurer, ReinsuranceTreaty, 
-    ReinsuranceLayer, LayerParticipant, CashCall, Document, PartyRole
+    ReinsuranceLayer, LayerParticipant, CashCall, Document, PartyRole,
+    CustomerUser, ChatMessage, GeneratedAd, PolicySummary, EmailTemplate
 )
 import pandas as pd
 
