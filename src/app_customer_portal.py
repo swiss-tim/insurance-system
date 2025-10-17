@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import random
+import time
 
 # Initialize database
 from init_db import init_database
@@ -231,6 +232,54 @@ Policy holder: {policy_data['customer_name']}
 Contact: [Your phone]"""
         }
 
+# AI Quote Flow Function
+def get_quote_flow(product_type, user):
+    """Get the complete quote conversation flow for a product"""
+    
+    quote_flows = {
+        'Travel Insurance': [
+            {'type': 'bot', 'text': f"Great choice, {user.party.name}! I'll help you get a personalized Travel Insurance quote. This will only take 15 seconds. ✈️"},
+            {'type': 'user', 'text': "Sounds good!"},
+            {'type': 'bot', 'text': "Perfect! Let me ask you a few quick questions. **Where are you planning to travel?**"},
+            {'type': 'user', 'text': "Europe - planning a 2-week trip to Italy and France"},
+            {'type': 'bot', 'text': "Excellent! **How many travelers?** And any pre-existing medical conditions I should know about?"},
+            {'type': 'user', 'text': "Just me, and no pre-existing conditions"},
+            {'type': 'bot', 'text': "Perfect! 🎉\n\n**Your Personalized Quote:**\n\n✓ Destination: Europe (Italy & France)\n✓ Duration: 14 days\n✓ Travelers: 1 adult\n✓ Medical Coverage: CHF 100,000\n✓ Trip Cancellation: CHF 5,000\n✓ Baggage Loss: CHF 2,000\n✓ 24/7 Emergency Assistance\n\n**Total Premium: CHF 89**\n\nThis quote is bindable and ready to purchase! Click below to proceed. ⏱️ Generated in 12 seconds."},
+        ],
+        'Life Insurance': [
+            {'type': 'bot', 'text': f"Hi {user.party.name}! Let's find the perfect Life Insurance coverage for you. This will take just 15 seconds. 🛡️"},
+            {'type': 'user', 'text': "Yes, please help me get a quote"},
+            {'type': 'bot', 'text': "Wonderful! **What's your current age?** And do you have any dependents?"},
+            {'type': 'user', 'text': "I'm 35 years old, married with 2 children"},
+            {'type': 'bot', 'text': "Great! **What coverage amount are you looking for?** We typically recommend 10x your annual income."},
+            {'type': 'user', 'text': "Around CHF 500,000 would be ideal"},
+            {'type': 'bot', 'text': "Excellent choice! 🎉\n\n**Your Personalized Quote:**\n\n✓ Coverage Amount: CHF 500,000\n✓ Term: 25 years (to age 60)\n✓ Beneficiaries: Spouse + 2 children\n✓ Critical Illness Rider: Included\n✓ Premium Waiver: Included\n✓ Tax Deductible: Yes\n\n**Monthly Premium: CHF 47**\n**Annual Premium: CHF 564**\n\nThis quote is bindable immediately! ⏱️ Generated in 14 seconds."},
+        ],
+        'Pet Insurance': [
+            {'type': 'bot', 'text': f"Hello {user.party.name}! Let's protect your furry friend with Pet Insurance. Quick questions ahead! 🐾"},
+            {'type': 'user', 'text': "Yes, I'd like coverage for my dog"},
+            {'type': 'bot', 'text': "Wonderful! **What type and breed?** And how old is your pet?"},
+            {'type': 'user', 'text': "Golden Retriever, 3 years old"},
+            {'type': 'bot', 'text': "Perfect! **Any pre-existing conditions?** And what coverage level would you prefer (Basic, Standard, or Comprehensive)?"},
+            {'type': 'user', 'text': "No pre-existing conditions. I'd like Comprehensive coverage"},
+            {'type': 'bot', 'text': "Excellent choice! 🎉\n\n**Your Personalized Quote:**\n\n✓ Pet: Golden Retriever (3 years)\n✓ Coverage: Comprehensive\n✓ Vet Visits: Unlimited\n✓ Surgery Coverage: CHF 15,000/year\n✓ Medication: Included\n✓ Wellness Care: Included\n✓ Deductible: CHF 200\n\n**Monthly Premium: CHF 68**\n**Annual Premium: CHF 816**\n\nBindable quote ready! ⏱️ Generated in 13 seconds."},
+        ],
+    }
+    
+    # Default flow for other products
+    if product_type not in quote_flows:
+        quote_flows[product_type] = [
+            {'type': 'bot', 'text': f"Hi {user.party.name}! Let me help you get a quote for {product_type}. Just a few quick questions!"},
+            {'type': 'user', 'text': "Sure, go ahead"},
+            {'type': 'bot', 'text': "**What's your coverage needs?**"},
+            {'type': 'user', 'text': "Standard coverage would be great"},
+            {'type': 'bot', 'text': "Perfect! Let me calculate..."},
+            {'type': 'user', 'text': "Sounds good"},
+            {'type': 'bot', 'text': f"🎉 **Your Quote is Ready!**\n\nCustomized {product_type} coverage tailored to your needs.\n\n**Estimated Premium: CHF 95/month**\n\nThis bindable quote was generated in 14 seconds!"},
+        ]
+    
+    return quote_flows[product_type]
+
 # Main App Logic
 def main():
     # Get user session (in production, use proper authentication)
@@ -257,43 +306,113 @@ def main():
         if policy:
             policies.append(policy)
     
-    # Sidebar - Minimal User Info
+    # Initialize chat state variables
+    if 'quote_flow_active' not in st.session_state:
+        st.session_state.quote_flow_active = False
+    if 'quote_messages' not in st.session_state:
+        st.session_state.quote_messages = []
+    if 'quote_step' not in st.session_state:
+        st.session_state.quote_step = 0
+    if 'quote_product' not in st.session_state:
+        st.session_state.quote_product = None
+    if 'last_message_time' not in st.session_state:
+        st.session_state.last_message_time = None
+    
+    # Sidebar - Dynamic Content (User Info OR Chat)
     with st.sidebar:
-        st.markdown(f"### 👤 {party.name}")
-        st.caption(f"📧 {user.email}")
-        
-        if user.avatar_url:
-            st.image(user.avatar_url, width=120)
-        
-        st.markdown("---")
-        
-        # Quick Stats
-        st.metric("Active Policies", len(policies))
-        total_premium = sum([p.quote.total_premium for p in policies if p.quote])
-        st.metric("Annual Premium", f"CHF {total_premium:,.0f}")
-        
-        chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
-        st.metric("Chat Messages", chat_count)
-    
-    # Cacti Bot in top-right corner (before tabs)
-    col_main, col_chat = st.columns([10, 1])
-    
-    with col_chat:
-        with st.popover("🌵", help="Chat with Cacti Bot", use_container_width=True):
-            st.markdown("### 🌵 Cacti Bot")
-            st.caption("Your AI Insurance Assistant")
+        if st.session_state.quote_flow_active:
+            # CHAT MODE - AI Quote Generation
+            st.markdown("### 🤖 AI Quote Generation")
+            st.caption(f"For: **{st.session_state.quote_product}**")
             st.caption("*Powered by Amazon Bedrock (Claude 3)*")
+            
+            if st.button("❌ Close Chat", use_container_width=True):
+                st.session_state.quote_flow_active = False
+                st.session_state.quote_messages = []
+                st.session_state.quote_step = 0
+                st.session_state.last_message_time = None
+                st.rerun()
             
             st.markdown("---")
             
-            # Chat input form (moved to top)
-            st.markdown("**✍️ Send a Message:**")
+            # Display quote conversation
+            for msg in st.session_state.quote_messages:
+                if msg['type'] == 'bot':
+                    st.markdown(f"""
+                    <div style='background: #E8F5E9; padding: 10px; border-radius: 6px; margin: 6px 0; border-left: 3px solid #4CAF50;'>
+                        <strong>🤖 AI Agent:</strong> {msg['text']}
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style='background: #E3F2FD; padding: 10px; border-radius: 6px; margin: 6px 0; text-align: right; border-right: 3px solid #2196F3;'>
+                        <strong>You:</strong> {msg['text']}
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            # Show typing indicator if waiting
+            if st.session_state.last_message_time and (time.time() - st.session_state.last_message_time < 1):
+                st.markdown("**🤖 typing...**")
+            
+            # Progress quote flow
+            quote_flows = get_quote_flow(st.session_state.quote_product, user)
+            total_steps = len(quote_flows)
+            
+            if st.session_state.quote_step < total_steps:
+                # Check if enough time has passed since last message
+                current_time = time.time()
+                should_progress = (st.session_state.last_message_time is None or 
+                                 (current_time - st.session_state.last_message_time >= 1.0))
+                
+                if should_progress:
+                    # Add next message
+                    st.session_state.quote_messages.append(quote_flows[st.session_state.quote_step])
+                    st.session_state.quote_step += 1
+                    st.session_state.last_message_time = current_time
+                    time.sleep(0.3)
+                    st.rerun()
+            else:
+                # Flow complete
+                st.markdown("---")
+                st.success("✅ **Quote Complete!**")
+                st.caption(f"Generated in ~{len(quote_flows)} seconds")
+                
+                if st.button("🔄 Get Another Quote", use_container_width=True):
+                    st.session_state.quote_flow_active = False
+                    st.session_state.quote_messages = []
+                    st.session_state.quote_step = 0
+                    st.session_state.last_message_time = None
+                    st.rerun()
+        else:
+            # NORMAL MODE - User Info & Chat Access
+            st.markdown(f"### 👤 {party.name}")
+            st.caption(f"📧 {user.email}")
+            
+            if user.avatar_url:
+                st.image(user.avatar_url, width=120)
+            
+            st.markdown("---")
+            
+            # Quick Stats
+            st.metric("Active Policies", len(policies))
+            total_premium = sum([p.quote.total_premium for p in policies if p.quote])
+            st.metric("Annual Premium", f"CHF {total_premium:,.0f}")
+            
+            chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
+            st.metric("Chat Messages", chat_count)
+            
+            st.markdown("---")
+            
+            # Manual chat access
+            st.markdown("### 💬 Cacti Bot")
+            st.caption("Ask me anything!")
+            
+            # Chat input
             user_message = st.text_area(
                 "Your question:", 
-                placeholder="Ask about policies, claims, renewals...",
+                placeholder="Ask about policies, renewals...",
                 height=80,
-                key="chat_input_popover",
-                label_visibility="collapsed"
+                key="sidebar_chat_input"
             )
             
             if st.button("📤 Send", type="primary", use_container_width=True):
@@ -322,33 +441,23 @@ def main():
                     st.success("✅ Sent!")
                     st.rerun()
                 else:
-                    st.warning("Please type a message first")
+                    st.warning("Type a message first")
             
-            st.markdown("---")
-            
-            # Chat history (moved to bottom, collapsed by default)
+            # Chat history
             chat_history = session.query(ChatMessage).filter(
                 ChatMessage.user_id == user.id
-            ).order_by(ChatMessage.timestamp.desc()).limit(10).all()
+            ).order_by(ChatMessage.timestamp.desc()).limit(5).all()
             
             if chat_history:
-                with st.expander("💬 Recent Conversations", expanded=False):
-                    # Display in reverse (oldest first)
-                    for chat in reversed(chat_history[-5:]):
-                        st.markdown(f"""
-                        <div style='background: #E3F2FD; padding: 8px; border-radius: 6px; margin: 4px 0; text-align: right;'>
-                            <small style='color: #666;'>{chat.timestamp.strftime('%H:%M')}</small><br>
-                            <strong>You:</strong> {chat.message[:80]}{"..." if len(chat.message) > 80 else ""}
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        st.markdown(f"""
-                        <div style='background: #F1F8E9; padding: 8px; border-radius: 6px; margin: 4px 0;'>
-                            <strong>🌵 Cacti:</strong> {chat.response[:100]}{"..." if len(chat.response) > 100 else ""}
-                        </div>
-                        """, unsafe_allow_html=True)
-            else:
-                st.caption("💬 No chat history yet. Ask me anything!")
+                with st.expander("💬 Recent Chats", expanded=False):
+                    for chat in reversed(chat_history):
+                        st.caption(f"🕒 {chat.timestamp.strftime('%H:%M')}")
+                        st.info(f"**You:** {chat.message[:60]}...")
+                        st.success(f"**Bot:** {chat.response[:60]}...")
+    
+    # Visual indicator when quote is running
+    if st.session_state.quote_flow_active:
+        st.info("🤖 **AI Quote Generation in Progress** → Check the sidebar for live conversation!", icon="💬")
     
     # Top Navigation using Tabs
     tab1, tab2, tab3, tab4 = st.tabs([
@@ -430,8 +539,14 @@ def main():
                     
                     st.markdown(ad.ad_copy)
                     
-                    if st.button(f"Get Quote for {ad.product_type}", key=f"ad_{ad.id}"):
-                        st.success(f"✅ Quote request sent for {ad.product_type}! We'll contact you within 24 hours.")
+                    if st.button(f"💰 Get Free Quote", key=f"ad_{ad.id}", type="primary"):
+                        # Start AI quote flow
+                        st.session_state.quote_flow_active = True
+                        st.session_state.quote_messages = []
+                        st.session_state.quote_step = 0
+                        st.session_state.quote_product = ad.product_type
+                        st.session_state.last_message_time = None
+                        st.rerun()
         
         st.markdown("---")
         
@@ -591,14 +706,19 @@ def main():
                 with col2:
                     st.markdown(ad.ad_copy)
                     
-                    if st.button(f"💰 Get Quote", key=f"offer_{ad.id}"):
+                    if st.button(f"💰 Get Free Quote", key=f"offer_{ad.id}", type="primary"):
                         # Mark as clicked
                         ad.clicked = True
                         ad.click_timestamp = datetime.now()
                         session.commit()
                         
-                        st.success(f"✅ Quote request submitted for {ad.product_type}!")
-                        st.balloons()
+                        # Start AI quote flow
+                        st.session_state.quote_flow_active = True
+                        st.session_state.quote_messages = []
+                        st.session_state.quote_step = 0
+                        st.session_state.quote_product = ad.product_type
+                        st.session_state.last_message_time = None
+                        st.rerun()
                 
                 st.markdown("---")
         
