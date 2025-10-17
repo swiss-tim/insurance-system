@@ -56,6 +56,7 @@ venv.bak/
 
 # Streamlit
 .streamlit/secrets.toml
+src/.streamlit/secrets.toml
 
 # macOS
 .DS_Store

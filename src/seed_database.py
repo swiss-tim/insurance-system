@@ -461,7 +461,7 @@ def seed_data():
             password_hash='$2b$12$demo_hash_only',  # Demo only - not real security
             avatar_url='https://api.dicebear.com/7.x/notionists/svg?seed=Maria&backgroundColor=b6e3f4',
             avatar_prompt='Professional business portrait',
-            last_login=datetime.datetime(2024, 1, 15, 10, 30)
+            last_login=datetime.datetime(2025, 10, 15, 10, 30)
         )
         session.add(customer_user)
         session.commit()
@@ -480,10 +480,10 @@ def seed_data():
         session.commit()
         
         policy_home = Policy(
-            policy_number='CH-HOME-2024-001',
+            policy_number='CH-HOME-2025-001',
             quote_id=quote_casa.id,
-            effective_date=datetime.date(2024, 1, 1),
-            expiration_date=datetime.date(2024, 12, 31),
+            effective_date=datetime.date(2025, 1, 1),
+            expiration_date=datetime.date(2025, 12, 31),
             status='ACTIVE'
         )
         session.add(policy_home)
@@ -515,10 +515,10 @@ def seed_data():
         session.commit()
         
         policy_car = Policy(
-            policy_number='CH-AUTO-2024-002',
+            policy_number='CH-AUTO-2025-002',
             quote_id=quote_drive.id,
-            effective_date=datetime.date(2024, 1, 1),
-            expiration_date=datetime.date(2024, 12, 31),
+            effective_date=datetime.date(2025, 1, 1),
+            expiration_date=datetime.date(2025, 12, 31),
             status='ACTIVE'
         )
         session.add(policy_car)
@@ -540,8 +540,8 @@ def seed_data():
         chat1 = ChatMessage(
             user_id=customer_user.id,
             message="What are my current policies?",
-            response="You have 2 active policies:\n\n1. Home Insurance (CH-HOME-2024-001) with Casa Insurance AG\n   - Coverage: Building, Contents, Liability\n   - Annual Premium: CHF 1,200\n   - Expires: Dec 31, 2024\n\n2. Auto Insurance (CH-AUTO-2024-002) with DriveSecure Insurance\n   - Coverage: Collision, Comprehensive, Liability\n   - Annual Premium: CHF 850\n   - Expires: Dec 31, 2024",
-            timestamp=datetime.datetime(2024, 1, 10, 14, 25),
+            response="You have 2 active policies:\n\n1. Home Insurance (CH-HOME-2025-001) with Casa Insurance AG\n   - Coverage: Building, Contents, Liability\n   - Annual Premium: CHF 1,200\n   - Expires: Dec 31, 2025\n\n2. Auto Insurance (CH-AUTO-2025-002) with DriveSecure Insurance\n   - Coverage: Collision, Comprehensive, Liability\n   - Annual Premium: CHF 850\n   - Expires: Dec 31, 2025",
+            timestamp=datetime.datetime(2025, 10, 10, 14, 25),
             is_user=True,
             model_used='Claude 3'
         )
@@ -549,8 +549,8 @@ def seed_data():
         chat2 = ChatMessage(
             user_id=customer_user.id,
             message="When is my home insurance renewal?",
-            response="Your home insurance policy (CH-HOME-2024-001) expires on December 31, 2024. Your renewal is coming up! We'll send you renewal options 30 days before expiration. Would you like to review your coverage now?",
-            timestamp=datetime.datetime(2024, 1, 12, 9, 45),
+            response="Your home insurance policy (CH-HOME-2025-001) expires on December 31, 2025. Your renewal is coming up! We'll send you renewal options 30 days before expiration. Would you like to review your coverage now?",
+            timestamp=datetime.datetime(2025, 10, 12, 9, 45),
             is_user=True,
             model_used='Claude 3'
         )
@@ -559,7 +559,7 @@ def seed_data():
             user_id=customer_user.id,
             message="How do I file a claim?",
             response="To file a claim, you can:\n\n1. Use the 'File a Claim' button in your policy details\n2. Call your insurer directly (number shown in your policy)\n3. Let me help you start the process now\n\nI'll need:\n- Date and time of incident\n- Description of what happened\n- Photos if available\n- Police report number (if applicable)\n\nWould you like to start filing a claim now?",
-            timestamp=datetime.datetime(2024, 1, 14, 16, 10),
+            timestamp=datetime.datetime(2025, 10, 14, 16, 10),
             is_user=True,
             model_used='Claude 3'
         )
@@ -574,7 +574,7 @@ def seed_data():
             image_prompt='Vacation beach scene with protection shield overlay',
             image_url='https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop&q=80',
             ad_copy="✈️ **Planning a Trip?** Protect your adventures with comprehensive Travel Insurance!\n\n✓ Medical emergencies abroad\n✓ Trip cancellation coverage\n✓ Lost luggage protection\n✓ 24/7 global assistance\n\nStarting from just CHF 45 per trip. Get a quote in 2 minutes!",
-            generated_at=datetime.datetime(2024, 1, 15, 8, 0),
+            generated_at=datetime.datetime(2025, 10, 15, 8, 0),
             clicked=False
         )
         
@@ -584,7 +584,7 @@ def seed_data():
             image_prompt='Family protection and security illustration',
             image_url='https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=300&fit=crop&q=80',
             ad_copy="🛡️ **Protect Your Family's Future**\n\nSecure your loved ones with affordable Life Insurance coverage.\n\n✓ Guaranteed payout to beneficiaries\n✓ Optional critical illness coverage\n✓ Flexible premium payments\n✓ Tax advantages\n\nGet personalized quotes based on your needs. Cover up to 10x your annual income!",
-            generated_at=datetime.datetime(2024, 1, 15, 8, 0),
+            generated_at=datetime.datetime(2025, 10, 15, 8, 0),
             clicked=False
         )
         
@@ -595,8 +595,8 @@ def seed_data():
         summary_home = PolicySummary(
             policy_id=policy_home.id,
             user_id=customer_user.id,
-            summary_text="**Your Home Insurance at a Glance:**\n\n🏠 **Building Coverage**: CHF 500,000\n- Covers structural damage from fire, water, storms\n- Deductible: CHF 1,000\n\n📦 **Contents Coverage**: CHF 100,000\n- Protects your belongings inside the home\n- Includes furniture, electronics, clothing\n- Deductible: CHF 500\n\n⚖️ **Liability Protection**: CHF 5,000,000\n- Covers accidents on your property\n- Legal defense costs included\n- No deductible\n\n**Important Notes:**\n- Policy covers sudden and accidental damage\n- Regular maintenance issues not covered\n- 24-hour emergency hotline available\n- Annual renewal: December 31, 2024",
-            generated_at=datetime.datetime(2024, 1, 11, 10, 15),
+            summary_text="**Your Home Insurance at a Glance:**\n\n🏠 **Building Coverage**: CHF 500,000\n- Covers structural damage from fire, water, storms\n- Deductible: CHF 1,000\n\n📦 **Contents Coverage**: CHF 100,000\n- Protects your belongings inside the home\n- Includes furniture, electronics, clothing\n- Deductible: CHF 500\n\n⚖️ **Liability Protection**: CHF 5,000,000\n- Covers accidents on your property\n- Legal defense costs included\n- No deductible\n\n**Important Notes:**\n- Policy covers sudden and accidental damage\n- Regular maintenance issues not covered\n- 24-hour emergency hotline available\n- Annual renewal: December 31, 2025",
+            generated_at=datetime.datetime(2025, 10, 11, 10, 15),
             model_used='Claude 3 Sonnet'
         )
         
@@ -608,12 +608,12 @@ def seed_data():
             user_id=customer_user.id,
             policy_id=policy_home.id,
             template_type='renewal_inquiry',
-            subject='Home Insurance Renewal - Policy CH-HOME-2024-001',
+            subject='Home Insurance Renewal - Policy CH-HOME-2025-001',
             body="""Dear Casa Insurance Team,
 
-I am writing regarding the upcoming renewal of my home insurance policy (Policy Number: CH-HOME-2024-001).
+I am writing regarding the upcoming renewal of my home insurance policy (Policy Number: CH-HOME-2025-001).
 
-My current policy expires on December 31, 2024, and I would like to:
+My current policy expires on December 31, 2025, and I would like to:
 - Review my current coverage levels
 - Request a renewal quote for 2025
 - Discuss any available discounts or coverage enhancements
@@ -631,7 +631,7 @@ Best regards,
 Maria Weber
 Phone: +41 41 555 7890
 Email: maria.weber@example.com""",
-            generated_at=datetime.datetime(2024, 1, 13, 14, 30),
+            generated_at=datetime.datetime(2025, 10, 13, 14, 30),
             sent=False
         )
         
