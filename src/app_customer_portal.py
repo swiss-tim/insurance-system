@@ -248,28 +248,36 @@ def main():
         if policy:
             policies.append(policy)
     
-    # Sidebar Navigation
-    st.sidebar.markdown(f"### Welcome, {party.name}!")
-    st.sidebar.markdown(f"📧 {user.email}")
+    # Sidebar - Minimal User Info
+    with st.sidebar:
+        st.markdown(f"### 👤 {party.name}")
+        st.caption(f"📧 {user.email}")
+        
+        if user.avatar_url:
+            st.image(user.avatar_url, width=120)
+        
+        st.markdown("---")
+        
+        # Quick Stats
+        st.metric("Active Policies", len(policies))
+        total_premium = sum([p.quote.total_premium for p in policies if p.quote])
+        st.metric("Annual Premium", f"CHF {total_premium:,.0f}")
+        
+        chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
+        st.metric("Chat Messages", chat_count)
     
-    if user.avatar_url:
-        st.sidebar.image(user.avatar_url, width=150)
-    
-    st.sidebar.markdown("---")
-    
-    page = st.sidebar.radio("Navigation", [
+    # Top Navigation using Tabs
+    tab1, tab2, tab3, tab4 = st.tabs([
         "🏠 Dashboard",
         "📋 My Policies",
         "🎯 Special Offers",
         "👤 My Account"
     ])
     
-    # No need for chat_open state with popover
-    
     # ======================
-    # PAGE 1: DASHBOARD
+    # TAB 1: DASHBOARD
     # ======================
-    if page == "🏠 Dashboard":
+    with tab1:
         st.markdown('<div class="main-header"><h1>🌵 My Insurance Dashboard</h1><p>Your personalized insurance portal powered by AI</p></div>', unsafe_allow_html=True)
         
         # Key Metrics
@@ -303,26 +311,18 @@ def main():
         
         st.markdown("---")
         
-        # Quick Actions
-        st.subheader("⚡ Quick Actions")
-        col1, col2, col3, col4 = st.columns(4)
+        # Quick Tips
+        st.subheader("⚡ Quick Tips")
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            # Chat button now uses popover
-            st.markdown("💬 **Chat with Cacti Bot** — Click the 🌵 button in the bottom right!")
+            st.info("💬 **Need Help?**\n\nClick the 🌵 button at the bottom-right to chat with Cacti Bot!")
         
         with col2:
-            if st.button("📄 View Policies", use_container_width=True):
-                st.session_state.nav_page = "📋 My Policies"
-                st.rerun()
+            st.info("📋 **Manage Policies**\n\nUse the tabs above to view your policies, special offers, and account")
         
         with col3:
-            if st.button("📞 File a Claim", use_container_width=True):
-                st.info("Claim filing feature - redirecting to Cacti Bot...")
-        
-        with col4:
-            if st.button("💰 Get a Quote", use_container_width=True):
-                st.success("Quote request submitted! Check special offers.")
+            st.info("🤖 **AI Features**\n\nGet policy summaries, generate emails, and personalized recommendations!")
         
         st.markdown("---")
         
@@ -366,9 +366,9 @@ def main():
             st.info("No recent activity. Start a conversation with Cacti Bot!")
     
     # ======================
-    # PAGE 2: MY POLICIES
+    # TAB 2: MY POLICIES
     # ======================
-    elif page == "📋 My Policies":
+    with tab2:
         st.markdown('<div class="main-header"><h1>📋 My Insurance Policies</h1></div>', unsafe_allow_html=True)
         
         if not policies:
@@ -402,8 +402,7 @@ def main():
                         coverage_data.append({
                             "Type": cov.coverage_type,
                             "Limit": f"CHF {cov.limit_amount:,.0f}",
-                            "Deductible": f"CHF {cov.deductible_amount:,.0f}",
-                            "Premium": f"CHF {cov.premium:,.0f}"
+                            "Deductible": f"CHF {cov.deductible_amount:,.0f}"
                         })
                     
                     if coverage_data:
@@ -480,9 +479,9 @@ def main():
                             st.info("Claim filing redirected to Cacti Bot for assistance!")
     
     # ======================
-    # PAGE 3: SPECIAL OFFERS
+    # TAB 3: SPECIAL OFFERS
     # ======================
-    elif page == "🎯 Special Offers":
+    with tab3:
         st.markdown('<div class="main-header"><h1>🎯 Special Offers</h1><p>AI-personalized recommendations just for you</p></div>', unsafe_allow_html=True)
         
         st.markdown("### 💡 Personalized Insurance Recommendations")
@@ -549,9 +548,9 @@ def main():
                 st.rerun()
     
     # ======================
-    # PAGE 4: MY ACCOUNT
+    # TAB 4: MY ACCOUNT
     # ======================
-    elif page == "👤 My Account":
+    with tab4:
         st.markdown('<div class="main-header"><h1>👤 My Account</h1></div>', unsafe_allow_html=True)
         
         col1, col2 = st.columns([1, 2])
@@ -600,7 +599,18 @@ def main():
             st.text_input("Name:", value=party.name, disabled=True)
             st.text_input("Email:", value=user.email, disabled=True)
             st.text_input("Phone:", value=party.phone or "Not provided", disabled=True)
-            st.text_input("Address:", value=f"{party.address}, {party.city} {party.postal_code}", disabled=True)
+            
+            # Build address string
+            address_parts = []
+            if party.address:
+                address_parts.append(party.address)
+            if party.city:
+                address_parts.append(party.city)
+            if party.country:
+                address_parts.append(party.country)
+            address_str = ", ".join(address_parts) if address_parts else "Not provided"
+            
+            st.text_input("Address:", value=address_str, disabled=True)
             
             st.markdown("---")
             
@@ -608,8 +618,9 @@ def main():
             st.metric("Last Login", user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else "N/A")
             st.metric("Member Since", user.created_at.strftime('%Y-%m-%d'))
             
-            chat_count = session.query(ChatMessage).filter(ChatMessage.user_id == user.id).count()
-            st.metric("Cacti Bot Conversations", chat_count)
+            # Additional stats
+            policy_count = len(policies)
+            st.metric("Total Policies", policy_count)
     
     # ======================
     # FLOATING CACTI BOT (BOTTOM-RIGHT POPOVER)
