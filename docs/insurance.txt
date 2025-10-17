@@ -1,0 +1,16 @@
+User-friendly agent, broker, and customer portals with intuitive, well-designed interfaces your users will love.
+Unlock a 360-degree view of data from all sources, including AMS, core admin, lead management, embedded insurance, and more.
+Easily track goals, KPIs, and compliance to help onboard and train new agents quickly.
+Enable digital innovation
+Accelerate quote, rate, and bind and deliver self-service portals for agents and policyholders.
+
+Reduce time to market - Take new products to market faster with Appian’s low-code design experience.
+Drive growth with embedded insurance - Go beyond traditional channels. Easily integrate embedded insurance with legacy systems.
+Improve agent lifecycle management - Digitize the onboarding process to train new agents faster and simplify licensing checks.
+
+Agentic AI Development Framework, focused initially on improving developer efficiency and enabling intelligent experiences for underwriters and claims adjusters.
+Three ongoing strategic initiatives were also highlighted, including:
+Redefining underwriting excellence - Guidewire described the first in a series of capabilities designed to reshape the underwriting process in P&C - transforming risk assessment from a reactive process to a dynamic, intelligence-driven decision engine. They discussed a solution that will apply Agentic AI to automatically extract, enrich, and summarize data from new business submissions to reduce manual data entry while allowing underwriters to make faster and better-informed decisions.
+Elevating the claims experience - Guidewire demonstrated how Agentic AI can improve the claims adjuster experience and streamline claims handling. This included an AI-based Adjuster Assistant automatically generating high-level summaries of claim files and attached documents that surface the most relevant, actionable information and provide guidance on next steps.
+Integrated pricing and rating vision - Guidewire shared how insurers of the future could unlock the power of an advanced actuarial pricing engine on Guidewire Cloud Platform, making static, one-size-fits-all pricing a thing of the past. To accelerate progress against this vision, Guidewire has signed a definitive agreement to acquire Quantee, a Poland-based insurtech startup specializing in dynamic pricing software.
+

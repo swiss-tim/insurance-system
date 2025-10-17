@@ -1,0 +1,19 @@
+Build simple insurance processes for underwriting,
+-Understanding of the end-to-end lifecycle, with deeper expertise in one of the following areas:
+--Distribution & Sales
+---Broker-led, agency networks, MGAs.
+---Underwriting & Rating
+---Risk selection, classification, exposure rating, and experience rating.
+---Multi-line and multi-location risks.
+---Use of external data sources (geocoding, credit scoring, IoT)
+--Policy Administration
+--Co-insurance / Reinsurance
+--International business and Multi-national programs
+--Layering
+--Claims
+--Billing
+--Accounting, Money Flows and International Taxes
+--(Reinsurance & Risk Transfer)
+-Fluency in insurer economics (How Insurers Make Money - Premiums vs. claims vs. expenses, Key Ratios, Exposure Management, Reserving, Experience Modification, Capital Efficiency)
+-Experience in one of the Continental European Market-Specifics (Germany, Switzerland)
+-Regulatory Awareness (Solvency II, IDD (Insurance Distribution Directive), IFRS 17, sanctions compliance, etc.) and familiarity with local regulators (e.g., BaFin in Germany, FinMa in Switzerland)

@@ -1,0 +1,12 @@
+# Insurance System Requirements
+
+# Web Framework
+streamlit>=1.50.0
+
+# Database ORM
+sqlalchemy>=2.0.44
+
+# Additional dependencies installed automatically:
+# - pandas (for data handling)
+# - pyarrow (for data types)
+# - altair (for charts in streamlit)

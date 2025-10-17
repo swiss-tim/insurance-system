@@ -1,0 +1,66 @@
+Case 1: Swiss KMU Property & Liability
+
+This case highlights the manual, repetitive tasks a local broker performs for a standard SME client.
+
+The Insured: "Bäckerei Frischknecht GmbH," a medium-sized bakery in Zürich.
+Distribution & Sales: The owner works with a local Swiss insurance broker.
+
+Submission & Underwriting:
+Manual Data Re-Entry: The broker first gathers all the necessary information from the client via phone calls and a checklist. They then manually type this data into the proprietary online portals of three different insurers (e.g., Zurich, AXA, Helvetia) to get comparable quotes. Each portal has a different user interface, forcing the broker to re-enter the same information repeatedly.
+
+Manual Quote Comparison: The broker receives three quotes as separate PDF documents, each with a different layout. They spend an hour creating a custom comparison spreadsheet for the bakery owner, manually transcribing key figures like premiums, deductibles, and sub-limits to show the differences clearly.
+Document Chasing: The chosen insurer’s portal flags a need for the official commercial register extract (Handelsregisterauszug). The broker emails the client, downloads the attachment, and then manually uploads it to the insurer's portal to finalize the application.
+Policy Administration & Billing: The policy is issued. The broker reviews the 30-page document manually to ensure it matches the quote before forwarding it to the client. Billing is handled annually.
+
+The Claim (Customer Slip-and-Fall):
+Manual FNOL & Status Updates: The bakery owner calls the broker in a panic. The broker calms them down, manually fills out the insurer's PDF claim form, and emails it to the claims department. Over the next two weeks, the client calls the broker three times for an update. Each time, the broker has to call or email the claims adjuster, wait for a response, and then relay the status back to the client.
+
+Regress (Subrogation):
+Manual Information Coordination: The insurer's adjuster determines the cleaning contractor is liable. They email the broker asking for the contractor's details. The broker then calls the bakery owner, who has to look through their accounting records to find the contractor's company name and address, which the broker then manually forwards to the adjuster.
+
+
+Case 2: German Mittelstand Multi-Line Risk
+
+This case illustrates the coordination and data consolidation challenges for a larger, multi-location risk.
+
+The Insured: "Maschinenbau Schmidt AG," a German engineering firm with factories in Stuttgart and Hamburg.
+
+Distribution & Sales: The company uses a large agency network.
+
+Submission & Underwriting:
+
+Manual Data Consolidation: The agent receives two separate, large Excel spreadsheets from the client, one for each factory, listing hundreds of machines, their ages, and replacement values. The agent spends half a day manually copying and pasting this data into a single master "Statement of Values" in the insurer's required format.
+
+Manual Co-insurance Placement: The lead insurer agrees to cover 70% of the EUR 80M risk. The agent now has to manually place the remaining 30%. They draft a summary email and send it, along with the risk data, to underwriters at four other insurance companies. They then spend the next week chasing responses via phone and email and manually tracking the quotes in a separate spreadsheet.
+
+Manual Verification: The underwriter offers a discount for IoT sensors but requires proof. The agent has to request the installation and maintenance certificates from the client's facility manager and manually forward the PDF documents to the underwriter.
+
+Policy Administration & Billing: A single policy is issued. The agent manually reviews the co-insurance clause to ensure the percentages and responsibilities are correctly documented.
+
+The Claim (Factory Fire):
+
+Manual Coordination Hub: After the fire, the agent becomes the central point of contact. They spend days on the phone manually coordinating schedules for site visits between the factory manager, the lead insurer's adjuster, the co-insurer's representative, and the independent expert (Sachverständiger).
+
+Document Chase for Business Interruption: To process the EUR 500k business interruption part of the claim, the adjuster provides a long list of required financial documents. The agent spends the next month in a lengthy email chain with the client's finance department, manually tracking which documents have been sent and which are still outstanding.
+
+
+Case 3: Swiss Multinational Program with Reinsurance
+
+This case shows the immense manual compliance and coordination burden in international insurance.
+
+The Insured: "HelvetiaPharma SA," a pharmaceutical giant based in Basel.
+
+Distribution & Sales: HelvetiaPharma works with a global broker.
+
+Submission & Underwriting:
+Manual Compliance Screening: Before even approaching insurers, the broker's compliance team must manually check the names of HelvetiaPharma's subsidiaries and their directors in the USA and Singapore against multiple international sanctions lists. This is a time-consuming, critical step to ensure regulatory compliance.
+
+Manual Layering Placement: The broker creates a detailed presentation of the risk. They then manually email this to a list of over 30 reinsurers globally to build the CHF 250M tower of coverage. They use a massive spreadsheet to manually track who has quoted, at what price, on which layer, and which have declined. The process takes weeks of negotiation and follow-up.
+
+Policy Administration:
+Manual Policy Instructions: The broker in Basel manually drafts detailed instruction emails to their local offices in the USA and Singapore, specifying the exact limits and wordings required for the local policies to align with the Swiss Master policy. They then have to manually follow up to ensure these policies are issued correctly and on time.
+
+The Claim (CHF 90M US Lawsuit):
+Manual Claim Coordination: The US office alerts the Basel broker of the massive claim. The broker in Basel has to manually create a summary report for the Swiss lead insurer and all reinsurers in the tower. This involves converting USD figures to CHF, summarizing US legal proceedings for a European audience, and answering dozens of repetitive questions from each reinsurer.
+
+Manual Cash Calls: As the claim value surpasses the primary layer of CHF 10M, the broker has to manually issue formal "cash call" notices to each reinsurer in the tower, demanding payment for their share of the loss. This involves drafting individual notices, attaching the correct documentation, and manually tracking which reinsurers have paid and which need to be chased.
