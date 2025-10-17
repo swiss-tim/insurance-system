@@ -350,10 +350,6 @@ def main():
                     </div>
                     """, unsafe_allow_html=True)
             
-            # Show typing indicator if waiting
-            if st.session_state.last_message_time and (time.time() - st.session_state.last_message_time < 1):
-                st.markdown("**🤖 typing...**")
-            
             # Progress quote flow
             quote_flows = get_quote_flow(st.session_state.quote_product, user)
             total_steps = len(quote_flows)
@@ -361,15 +357,18 @@ def main():
             if st.session_state.quote_step < total_steps:
                 # Check if enough time has passed since last message
                 current_time = time.time()
-                should_progress = (st.session_state.last_message_time is None or 
-                                 (current_time - st.session_state.last_message_time >= 1.0))
+                time_since_last = current_time - st.session_state.last_message_time if st.session_state.last_message_time else 999
                 
-                if should_progress:
-                    # Add next message
+                if time_since_last < 1.0:
+                    # Still waiting - show typing indicator
+                    st.markdown("**🤖 typing...**")
+                    time.sleep(0.5)  # Wait a bit
+                    st.rerun()  # Force rerun to check again
+                else:
+                    # Time to show next message
                     st.session_state.quote_messages.append(quote_flows[st.session_state.quote_step])
                     st.session_state.quote_step += 1
                     st.session_state.last_message_time = current_time
-                    time.sleep(0.3)
                     st.rerun()
             else:
                 # Flow complete
