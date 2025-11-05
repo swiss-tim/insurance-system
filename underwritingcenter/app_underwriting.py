@@ -18,6 +18,7 @@ import sys
 import os
 import time
 import datetime
+import base64
 
 # Add parent directory to path to import database modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -410,8 +411,22 @@ def render_loading_modal():
 
 def render_dashboard():
     """Render the main dashboard screen"""
-    st.markdown('<h4 style="margin-bottom: 0; margin-top: 0;">Guidewire Underwriting Center</h4>', unsafe_allow_html=True)
-    st.markdown('<h5 style="margin-top: 0; margin-bottom: 0; color: #4b5563;">📋 My Submissions</h5>', unsafe_allow_html=True)
+    # Load and encode logo
+    logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
+    logo_base64 = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+    
+    # Custom header with logo and dark teal background
+    st.markdown(f"""
+    <div style="background-color: #3c5c6c; padding: 12px 20px; margin: -1rem -1rem 1rem -1rem; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
+        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<h5 style="margin-top: 10px; margin-bottom: 0; color: #1f2937;">My Submissions</h5>', unsafe_allow_html=True)
     
     # === TOP KPI ROW ===
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
