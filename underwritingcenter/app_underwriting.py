@@ -52,9 +52,10 @@ st.markdown("""
     }
     
     .kpi-title {
-        font-size: 0.85rem;
-        color: #9ca3af;
+        font-size: 1rem;
+        color: #d1d5db;
         margin-bottom: 0.5rem;
+        font-weight: 700;
     }
     
     .kpi-value {
@@ -418,15 +419,35 @@ def render_dashboard():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Custom header with logo and dark teal background
+    # Sticky header with logo and dark teal background
     st.markdown(f"""
-    <div style="background-color: #3c5c6c; padding: 12px 20px; margin: -1rem -1rem 1rem -1rem; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <style>
+    /* Make header sticky */
+    .sticky-header {{
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background-color: #3c5c6c !important;
+        padding: 12px 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        z-index: 999999 !important;
+        margin: 0 !important;
+    }}
+    /* Adjust main content to account for sticky header */
+    .main .block-container {{
+        padding-top: 60px !important;
+    }}
+    </style>
+    <div class="sticky-header">
         <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
         <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h5 style="margin-top: 10px; margin-bottom: 0; color: #1f2937;">My Submissions</h5>', unsafe_allow_html=True)
+    st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
     
     # === TOP KPI ROW ===
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
@@ -788,6 +809,40 @@ def render_dashboard():
 
 def render_submission_detail():
     """Render the detailed submission view"""
+    # Add sticky header
+    logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
+    logo_base64 = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+    
+    st.markdown(f"""
+    <style>
+    /* Make header sticky */
+    .sticky-header {{
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background-color: #3c5c6c !important;
+        padding: 12px 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        z-index: 999999 !important;
+        margin: 0 !important;
+    }}
+    /* Adjust main content to account for sticky header */
+    .main .block-container {{
+        padding-top: 60px !important;
+    }}
+    </style>
+    <div class="sticky-header">
+        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
+        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
     if not st.session_state.selected_submission:
         st.error("No submission selected")
         return
