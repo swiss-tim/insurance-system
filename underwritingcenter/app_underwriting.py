@@ -218,6 +218,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# === DATABASE INITIALIZATION ===
+# Check if database exists and initialize if needed
+db_path = os.path.join(os.path.dirname(__file__), '..', 'pnc_demo.db')
+if not os.path.exists(db_path):
+    try:
+        # Import seed_database to initialize the database
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from seed_database import seed_data
+        seed_data()
+    except Exception as e:
+        st.error(f"Failed to initialize database: {e}")
+
 # === SESSION STATE INITIALIZATION ===
 if 'current_screen' not in st.session_state:
     st.session_state.current_screen = 'dashboard'
