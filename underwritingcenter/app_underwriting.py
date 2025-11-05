@@ -13,6 +13,7 @@ This demo showcases:
 
 import streamlit as st
 import pandas as pd
+import altair as alt
 import sys
 import os
 import time
@@ -454,27 +455,101 @@ def render_dashboard():
     
     with chart_col2:
         # Average Hit Ratio - Bar chart
+        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Average Hit Ratio</p>', unsafe_allow_html=True)
         hit_ratio_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
-            'Hit Ratio %': [19, 24, 29, 26]
+            'Hit Ratio %': [19, 24, 29, 22]
         })
-        st.bar_chart(hit_ratio_data.set_index('Quarter'), height=150)
+        
+        chart = alt.Chart(hit_ratio_data).mark_bar(color='#14b8a6', size=40).encode(
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            y=alt.Y('Hit Ratio %:Q', 
+                    axis=alt.Axis(title=None, grid=True),
+                    scale=alt.Scale(domain=[0, 40]))
+        ).properties(
+            height=150
+        )
+        
+        # Add text labels on top of bars
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,
+            color='#0f766e',
+            fontSize=12,
+            fontWeight='bold'
+        ).encode(
+            text=alt.Text('Hit Ratio %:Q', format='.0f')
+        )
+        
+        st.altair_chart(chart + text, use_container_width=True)
     
     with chart_col3:
         # Cumulative Earned Premium - Bar chart
+        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Cumulative Earned Premium</p>', unsafe_allow_html=True)
         premium_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
-            'Premium ($M)': [8.5, 11.2, 13.8, 16.2]
+            'Premium ($M)': [5.8, 10.2, 12.8, 15.2]
         })
-        st.bar_chart(premium_data.set_index('Quarter'), height=150)
+        
+        chart = alt.Chart(premium_data).mark_bar(color='#14b8a6', size=40).encode(
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            y=alt.Y('Premium ($M):Q', 
+                    axis=alt.Axis(title=None, grid=True, format='$,.0f'),
+                    scale=alt.Scale(domain=[0, 17]))
+        ).properties(
+            height=150
+        )
+        
+        # Add text labels on top of bars
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,
+            color='#0f766e',
+            fontSize=11,
+            fontWeight='bold'
+        ).encode(
+            text=alt.Text('Premium ($M):Q', format='$,.1f')
+        )
+        
+        st.altair_chart(chart + text, use_container_width=True)
     
     with chart_col4:
         # In Force Loss Ratio - Line chart
+        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">In Force Loss Ratio</p>', unsafe_allow_html=True)
         loss_ratio_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
             'Loss Ratio %': [49, 51, 52, 49]
         })
-        st.line_chart(loss_ratio_data.set_index('Quarter'), height=150)
+        
+        # Line chart
+        line = alt.Chart(loss_ratio_data).mark_line(
+            color='#0891b2',
+            strokeWidth=3,
+            point=alt.OverlayMarkDef(color='#0891b2', size=60)
+        ).encode(
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            y=alt.Y('Loss Ratio %:Q', 
+                    axis=alt.Axis(title=None, grid=True, format='.0f'),
+                    scale=alt.Scale(domain=[44, 55]))
+        ).properties(
+            height=150
+        )
+        
+        # Add text labels on points
+        text = line.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-10,
+            color='#0e7490',
+            fontSize=11,
+            fontWeight='bold'
+        ).encode(
+            text=alt.Text('Loss Ratio %:Q', format='.0f')
+        )
+        
+        st.altair_chart(line + text, use_container_width=True)
     
     st.markdown("---")
     
