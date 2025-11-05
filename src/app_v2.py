@@ -1048,39 +1048,27 @@ elif "Case 4" in selected_case:
     st.sidebar.markdown("---")
     st.sidebar.subheader("Live Demo Controls")
     
-    # Auto-refresh toggle
-    auto_refresh = st.sidebar.checkbox("🔄 Auto-refresh (every 2s)", value=False)
-    
-    if auto_refresh:
-        import time
-        time.sleep(2)
-        st.rerun()
+    # Auto-refresh toggle with better implementation
+    auto_refresh = st.sidebar.checkbox("🔄 Auto-refresh (every 2s)", value=True)
     
     if st.sidebar.button("🔃 Manual Refresh", use_container_width=True):
         st.rerun()
     
-    st.markdown("""
-    ## 🔌 Live Guidewire API Integration Demo
+    # Auto-refresh mechanism using st.empty() placeholder
+    if auto_refresh:
+        import time
+        # Create a placeholder that will trigger rerun after 2 seconds
+        refresh_placeholder = st.sidebar.empty()
+        with refresh_placeholder:
+            st.caption(f"🔄 Last refresh: {time.strftime('%H:%M:%S')}")
+        time.sleep(2)
+        st.rerun()
     
-    **What You're Seeing:** This simulates a Guidewire PolicyCenter backend receiving and processing quotes in real-time.
+    # Header
+    st.markdown("## 🏢 Guidewire PolicyCenter - STP Dashboard")
+    st.caption("Real-time Straight Through Processing (STP) monitoring for API-driven quotes")
     
-    ### 🎯 How to Use This Demo:
-    
-    1. **Open Customer Portal** in another browser tab/window:
-       ```bash
-       streamlit run src/app_customer_portal.py --server.port 8502
-       ```
-    
-    2. **Arrange Windows Side-by-Side:**
-       - This window (port 8501) = Guidewire Backend View
-       - Other window (port 8502) = Customer Portal View
-    
-    3. **Trigger a Quote Request:**
-       - In the Customer Portal, click "Get Free Quote" on any product
-       - Watch this window show the API processing in real-time!
-    
-    ---
-    """)
+    st.markdown("---")
     
     # Query the database for quote activity
     from seed_database import CustomerUser, ChatMessage
@@ -1094,134 +1082,262 @@ elif "Case 4" in selected_case:
         session.close()
         st.stop()
     
-    # Check for active quote flows (recent chat messages about quotes)
-    recent_messages = session.query(ChatMessage).filter(
+    # Get all quote submissions (chat messages about quotes)
+    all_submissions = session.query(ChatMessage).filter(
         ChatMessage.user_id == user.id
-    ).order_by(ChatMessage.timestamp.desc()).limit(5).all()
+    ).order_by(ChatMessage.timestamp.desc()).all()
     
-    st.markdown("---")
+    # Calculate KPI metrics dynamically
+    total_quotes = len(all_submissions)
+    avg_processing_time = 12.1  # seconds (simulated)
     
-    # Main dashboard - Guidewire style
+    # Calculate STP rate and average premium from actual submissions
+    stp_count = 0
+    premiums = []
+    premium_map = {"Travel": 89, "Pet": 145, "Life": 450, "Home": 320}
+    
+    for msg in all_submissions:
+        # Determine product type
+        product_type = "General"
+        for prod in ["Travel", "Pet", "Life", "Home"]:
+            if prod.lower() in msg.message.lower():
+                product_type = prod
+                break
+        
+        # Calculate if it's STP (same logic as below)
+        if product_type in ["Travel", "Pet", "Home"]:
+            stp_count += 1
+        
+        # Add premium
+        premium = premium_map.get(product_type, 127)
+        premiums.append(premium)
+    
+    stp_rate = int((stp_count / total_quotes * 100)) if total_quotes > 0 else 94
+    avg_premium = sum(premiums) / len(premiums) if premiums else 127
+    
+    # === TOP KPI SECTION (4 Cards) ===
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
-            <h3 style='margin: 0;'>⏱️ Active</h3>
-            <h2 style='margin: 0.5rem 0;'>2</h2>
-            <p style='margin: 0; font-size: 0.9rem;'>API Connections</p>
+        trend_arrow = "⬇️" if avg_processing_time < 13 else "⬆️"
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+            <p style='margin: 0; font-size: 0.85rem; opacity: 0.9;'>Avg Processing Time</p>
+            <h1 style='margin: 0.3rem 0; font-size: 2.5rem;'>{avg_processing_time:.1f}s {trend_arrow}</h1>
+            <p style='margin: 0; font-size: 0.75rem; opacity: 0.8;'>-0.3s from yesterday</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
-            <h3 style='margin: 0;'>📋 Pending</h3>
-            <h2 style='margin: 0.5rem 0;'>0</h2>
-            <p style='margin: 0; font-size: 0.9rem;'>Quote Requests</p>
+        trend_arrow = "⬆️" if stp_rate >= 90 else "⬇️"
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+            <p style='margin: 0; font-size: 0.85rem; opacity: 0.9;'>STP Success Rate</p>
+            <h1 style='margin: 0.3rem 0; font-size: 2.5rem;'>{stp_rate}% {trend_arrow}</h1>
+            <p style='margin: 0; font-size: 0.75rem; opacity: 0.8;'>+2% from last week</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
-            <h3 style='margin: 0;'>✅ Completed</h3>
-            <h2 style='margin: 0.5rem 0;'>{}</h2>
-            <p style='margin: 0; font-size: 0.9rem;'>Today</p>
+        trend_arrow = "📈" if total_quotes > 0 else "📉"
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+            <p style='margin: 0; font-size: 0.85rem; opacity: 0.9;'>API Quotes Today</p>
+            <h1 style='margin: 0.3rem 0; font-size: 2.5rem;'>{total_quotes} {trend_arrow}</h1>
+            <p style='margin: 0; font-size: 0.75rem; opacity: 0.8;'>Live from Customer Portal</p>
         </div>
-        """.format(len(recent_messages)), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     with col4:
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1rem; border-radius: 8px; text-align: center;'>
-            <h3 style='margin: 0;'>⚡ Avg Time</h3>
-            <h2 style='margin: 0.5rem 0;'>12s</h2>
-            <p style='margin: 0; font-size: 0.9rem;'>Quote Generation</p>
+        trend_arrow = "⬆️" if avg_premium > 100 else "⬇️"
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+            <p style='margin: 0; font-size: 0.85rem; opacity: 0.9;'>Avg Premium per Quote</p>
+            <h1 style='margin: 0.3rem 0; font-size: 2.5rem;'>CHF {avg_premium:.0f} {trend_arrow}</h1>
+            <p style='margin: 0; font-size: 0.75rem; opacity: 0.8;'>Across all products</p>
         </div>
         """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Live Activity Feed
-    st.subheader("🔴 Live Activity Feed")
-    st.caption("Shows real-time API requests from Customer Portal")
+    # === STP INBOX SECTION ===
+    st.subheader("📋 STP Submissions")
     
-    if len(recent_messages) == 0:
-        st.info("""
-        👆 **Waiting for customer activity...**
-        
-        Open the Customer Portal and click "Get Free Quote" to see this system process the request in real-time!
-        
-        The system will show:
-        1. ⚡ API Request Received
-        2. 🧮 Rating Engine Processing
-        3. 🤖 Automated Underwriting
-        4. ✅ Quote Generated & Delivered
-        """)
+    # Tabs for filtering
+    tab1, tab2, tab3 = st.tabs(["Active Submissions", "Auto-Approved", "Manual Review"])
+    
+    # Initialize session state for expanded row
+    if 'expanded_submission' not in st.session_state:
+        st.session_state.expanded_submission = None
+    
+    if total_quotes == 0:
+        with tab1:
+            st.info("""
+            ### 👆 Waiting for customer activity...
+            
+            **To see this dashboard in action:**
+            1. Open the Customer Portal at `http://localhost:8502`
+            2. Click "Get Free Quote" on any insurance product
+            3. Watch this inbox update automatically!
+            
+            **What you'll see:**
+            - Real-time quote submissions appearing in this table
+            - STP processing status (Auto-Approved or Manual Review)
+            - Click any row to see detailed processing pipeline
+            """)
     else:
-        st.success("✅ **System Active** - Displaying recent quote requests")
-        
-        # Show recent activity as a timeline
-        for idx, msg in enumerate(recent_messages):
-            with st.expander(f"🔹 Request #{len(recent_messages) - idx} - {msg.timestamp.strftime('%H:%M:%S')}", expanded=(idx == 0)):
-                st.markdown(f"**Customer:** {user.party.name}")
-                st.markdown(f"**Timestamp:** {msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
-                st.markdown(f"**Request:** {msg.message}")
+        with tab1:
+            st.caption(f"Showing {total_quotes} submission(s) - Click any row to view processing details")
+            
+            # Build table data
+            table_data = []
+            for idx, msg in enumerate(all_submissions):
+                # Determine product type
+                product_type = "General"
+                for prod in ["Travel", "Pet", "Life", "Home"]:
+                    if prod.lower() in msg.message.lower():
+                        product_type = prod
+                        break
                 
-                # Simulate the processing stages
-                st.markdown("---")
-                st.markdown("### 📊 Processing Pipeline")
+                # Determine premium
+                premium_map = {"Travel": 89, "Pet": 145, "Life": 450, "Home": 320, "General": 127}
+                premium = premium_map.get(product_type, 127)
                 
-                # Stage 1: API Request
-                st.markdown("""
-                <div style='background: #E3F2FD; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #2196F3;'>
-                    <strong>⚡ Stage 1: API Request Received</strong><br>
-                    <small>Endpoint: POST /api/v1/quote/create</small><br>
-                    <small>Status: ✅ 200 OK</small><br>
-                    <small>Duration: 0.1s</small>
-                </div>
-                """, unsafe_allow_html=True)
+                # Determine status based on product type and risk profile
+                # High-value/high-risk products (Life) → Manual Review
+                # Low-risk products (Travel, Pet, Home) → Auto-Approved (STP)
+                if product_type in ["Travel", "Pet", "Home"]:
+                    status = "✅ Auto-Approved"
+                    decision = "STP"
+                elif product_type == "Life":
+                    # Life insurance requires manual underwriting
+                    status = "⚠️ Manual Review"
+                    decision = "Referred"
+                else:
+                    # General - auto-approve by default
+                    status = "✅ Auto-Approved"
+                    decision = "STP"
                 
-                # Stage 2: Rating Engine
-                st.markdown("""
-                <div style='background: #FFF3E0; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #FF9800;'>
-                    <strong>🧮 Stage 2: Rating Engine</strong><br>
-                    <small>Risk factors analyzed: 15</small><br>
-                    <small>Premium calculated: CHF 89-450</small><br>
-                    <small>Duration: 3.2s</small>
-                </div>
-                """, unsafe_allow_html=True)
+                quote_id = f"QT-{msg.id + 10000}"
                 
-                # Stage 3: Automated Underwriting
-                st.markdown("""
-                <div style='background: #F3E5F5; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #9C27B0;'>
-                    <strong>🤖 Stage 3: Automated Underwriting</strong><br>
-                    <small>Rules engine: 47 rules checked</small><br>
-                    <small>Decision: ✅ Auto-approved</small><br>
-                    <small>Confidence: 98%</small><br>
-                    <small>Duration: 5.8s</small>
-                </div>
-                """, unsafe_allow_html=True)
+                table_data.append({
+                    "Quote ID": quote_id,
+                    "Customer": user.party.name,
+                    "Product": product_type + " Insurance",
+                    "Status": status,
+                    "Processing Time": f"{avg_processing_time:.1f}s",
+                    "Premium": f"CHF {premium}",
+                    "Decision": decision,
+                    "Timestamp": msg.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    "_msg_obj": msg,  # Hidden field for drill-down
+                    "_idx": idx,
+                    "_premium_raw": premium
+                })
+            
+            # Display table with clickable rows
+            df = pd.DataFrame(table_data)
+            display_df = df.drop(columns=['_msg_obj', '_idx', '_premium_raw'])
+            
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Quote ID": st.column_config.TextColumn("Quote ID", width="small"),
+                    "Customer": st.column_config.TextColumn("Customer", width="medium"),
+                    "Product": st.column_config.TextColumn("Product", width="medium"),
+                    "Status": st.column_config.TextColumn("Status", width="small"),
+                    "Processing Time": st.column_config.TextColumn("Time", width="small"),
+                    "Premium": st.column_config.TextColumn("Premium", width="small"),
+                    "Decision": st.column_config.TextColumn("Decision", width="small"),
+                    "Timestamp": st.column_config.TextColumn("Timestamp", width="medium"),
+                }
+            )
+            
+            st.markdown("---")
+            st.markdown("#### 🔍 Drill Down: Select a Submission to View Details")
+            
+            # Dropdown to select which submission to drill into
+            submission_options = [f"{row['Quote ID']} - {row['Product']} - {row['Timestamp']}" for row in table_data]
+            
+            if submission_options:
+                selected = st.selectbox(
+                    "Choose a submission to view processing pipeline:",
+                    options=["None"] + submission_options,
+                    index=0 if st.session_state.expanded_submission is None else st.session_state.expanded_submission + 1
+                )
                 
-                # Stage 4: Quote Generated
-                st.markdown("""
-                <div style='background: #E8F5E9; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #4CAF50;'>
-                    <strong>✅ Stage 4: Quote Generated</strong><br>
-                    <small>Quote ID: QT-{}</small><br>
-                    <small>Policy Terms: Generated</small><br>
-                    <small>Delivered via: Chat API</small><br>
-                    <small>Total Duration: 12.1s</small>
-                </div>
-                """.format(msg.id + 10000), unsafe_allow_html=True)
-                
-                # Show the response
-                st.markdown("---")
-                st.markdown("### 💬 Response Delivered to Customer:")
-                st.info(msg.response)
-                
-                # API Call Details
-                with st.expander("🔍 View API Call Details"):
-                    st.code(f"""
+                if selected != "None":
+                    # Find the selected submission
+                    selected_idx = submission_options.index(selected)
+                    st.session_state.expanded_submission = selected_idx
+                    
+                    selected_row = table_data[selected_idx]
+                    msg = selected_row['_msg_obj']
+                    premium = selected_row['_premium_raw']
+                    
+                    # Show detailed processing pipeline
+                    st.markdown("---")
+                    st.markdown(f"### 📊 Processing Pipeline for {selected_row['Quote ID']}")
+                    st.caption(f"Customer: {user.party.name} | Product: {selected_row['Product']} | Time: {selected_row['Timestamp']}")
+                    
+                    # Stage 1: API Request
+                    st.markdown("""
+                    <div style='background: #E3F2FD; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #2196F3;'>
+                        <strong>⚡ Stage 1: API Request Received</strong><br>
+                        <small>Endpoint: POST /api/v1/quote/create</small><br>
+                        <small>Status: ✅ 200 OK</small><br>
+                        <small>Duration: 0.1s</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Stage 2: Rating Engine
+                    st.markdown(f"""
+                    <div style='background: #FFF3E0; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #FF9800;'>
+                        <strong>🧮 Stage 2: Rating Engine</strong><br>
+                        <small>Risk factors analyzed: 15</small><br>
+                        <small>Premium calculated: CHF {premium}</small><br>
+                        <small>Duration: 3.2s</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Stage 3: Automated Underwriting
+                    decision_text = "✅ Auto-approved" if selected_row['Decision'] == 'STP' else "⚠️ Referred to Manual Review"
+                    confidence = "98%" if selected_row['Decision'] == 'STP' else "72%"
+                    st.markdown(f"""
+                    <div style='background: #F3E5F5; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #9C27B0;'>
+                        <strong>🤖 Stage 3: Automated Underwriting</strong><br>
+                        <small>Rules engine: 47 rules checked</small><br>
+                        <small>Decision: {decision_text}</small><br>
+                        <small>Confidence: {confidence}</small><br>
+                        <small>Duration: 5.8s</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Stage 4: Quote Generated
+                    st.markdown(f"""
+                    <div style='background: #E8F5E9; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #4CAF50;'>
+                        <strong>✅ Stage 4: Quote Generated</strong><br>
+                        <small>Quote ID: {selected_row['Quote ID']}</small><br>
+                        <small>Policy Terms: Generated</small><br>
+                        <small>Delivered via: Chat API</small><br>
+                        <small>Total Duration: {avg_processing_time:.1f}s</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Show the AI response
+                    st.markdown("---")
+                    st.markdown("### 💬 AI Response Delivered to Customer:")
+                    with st.container():
+                        st.markdown(f"""
+                        <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #4CAF50;'>
+                        {msg.response}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # API Call Details
+                    with st.expander("🔍 View Full API Call Details"):
+                        st.code(f"""
 # Incoming Request
 POST /api/v1/quote/create HTTP/1.1
 Host: guidewire-api.insurancecloud.com
@@ -1231,7 +1347,7 @@ Content-Type: application/json
 {{
   "customer_id": "{user.id}",
   "customer_name": "{user.party.name}",
-  "product_type": "travel_insurance",
+  "product_type": "{selected_row['Product'].lower().replace(' insurance', '')}",
   "request_timestamp": "{msg.timestamp.isoformat()}",
   "context": {{
     "existing_policies": 2,
@@ -1245,15 +1361,35 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {{
-  "quote_id": "QT-{msg.id + 10000}",
-  "status": "approved",
-  "premium": 89,
+  "quote_id": "{selected_row['Quote ID']}",
+  "status": "{'approved' if selected_row['Decision'] == 'STP' else 'pending_review'}",
+  "premium": {premium},
   "currency": "CHF",
-  "valid_until": "2025-11-01",
-  "processing_time_ms": 12100,
-  "underwriting_decision": "auto_approved"
+  "valid_until": "2025-11-15",
+  "processing_time_ms": {int(avg_processing_time * 1000)},
+  "underwriting_decision": "{'auto_approved' if selected_row['Decision'] == 'STP' else 'manual_review_required'}"
 }}
-                    """, language="http")
+                        """, language="http")
+                else:
+                    st.session_state.expanded_submission = None
+        
+        with tab2:
+            auto_approved = [row for row in table_data if row['Decision'] == 'STP']
+            st.metric("Auto-Approved Submissions", len(auto_approved))
+            if auto_approved:
+                df_approved = pd.DataFrame(auto_approved).drop(columns=['_msg_obj', '_idx', '_premium_raw'])
+                st.dataframe(df_approved, use_container_width=True, hide_index=True)
+            else:
+                st.info("No auto-approved submissions yet.")
+        
+        with tab3:
+            manual_review = [row for row in table_data if row['Decision'] != 'STP']
+            st.metric("Manual Review Required", len(manual_review))
+            if manual_review:
+                df_manual = pd.DataFrame(manual_review).drop(columns=['_msg_obj', '_idx', '_premium_raw'])
+                st.dataframe(df_manual, use_container_width=True, hide_index=True)
+            else:
+                st.info("No submissions requiring manual review.")
     
     st.markdown("---")
     

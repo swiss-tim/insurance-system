@@ -39,10 +39,19 @@ class PartyRole(Base):
 class Submission(Base):
     __tablename__ = 'submission'
     id = Column(Integer, primary_key=True)
+    submission_number = Column(String, unique=True)  # e.g., "SUB-2026-001"
     insured_party_id = Column(Integer, ForeignKey('party.id'), nullable=False)
     broker_party_id = Column(Integer, ForeignKey('party.id'))
-    status = Column(String, default='OPEN', nullable=False)
+    status = Column(String, default='OPEN', nullable=False)  # TRIAGED, IN_REVIEW, QUOTED, BOUND, DECLINED
     created_at = Column(TIMESTAMP, server_default=func.now())
+    effective_date = Column(Date)  # Requested effective date
+    
+    # Underwriting Center fields
+    completeness = Column(Integer, default=0)  # 0-100%
+    priority_score = Column(Float)  # e.g., 4.8
+    risk_appetite = Column(String)  # High, Medium, Low
+    broker_tier = Column(String)  # Tier 1, Tier 2, Tier 3
+    
     quotes = relationship("Quote", back_populates="submission")
 
 class Quote(Base):
@@ -299,7 +308,17 @@ def seed_data():
         session.add_all([bakery, broker_sme, insurer_z, insurer_a, insurer_h, cleaning_co])
         session.commit()
 
-        submission1 = Submission(insured_party_id=bakery.id, broker_party_id=broker_sme.id, status='BOUND')
+        submission1 = Submission(
+            submission_number='SUB-2023-001',
+            insured_party_id=bakery.id,
+            broker_party_id=broker_sme.id,
+            status='BOUND',
+            effective_date=datetime.date(2023, 1, 1),
+            completeness=100,
+            priority_score=3.2,
+            risk_appetite='Low',
+            broker_tier='Tier 2'
+        )
         session.add(submission1)
         session.commit()
 
@@ -471,7 +490,17 @@ def seed_data():
         session.add(insurer_casa)
         session.commit()
         
-        submission_maria1 = Submission(insured_party_id=maria.id, broker_party_id=None, status='BOUND')
+        submission_maria1 = Submission(
+            submission_number='SUB-2025-100',
+            insured_party_id=maria.id,
+            broker_party_id=None,
+            status='BOUND',
+            effective_date=datetime.date(2025, 1, 1),
+            completeness=100,
+            priority_score=2.5,
+            risk_appetite='Low',
+            broker_tier=None
+        )
         session.add(submission_maria1)
         session.commit()
         
@@ -506,7 +535,17 @@ def seed_data():
         session.add(insurer_drive)
         session.commit()
         
-        submission_maria2 = Submission(insured_party_id=maria.id, broker_party_id=None, status='BOUND')
+        submission_maria2 = Submission(
+            submission_number='SUB-2025-101',
+            insured_party_id=maria.id,
+            broker_party_id=None,
+            status='BOUND',
+            effective_date=datetime.date(2025, 1, 1),
+            completeness=100,
+            priority_score=2.3,
+            risk_appetite='Low',
+            broker_tier=None
+        )
         session.add(submission_maria2)
         session.commit()
         
@@ -638,7 +677,164 @@ Email: maria.weber@example.com""",
         session.add(email1)
         session.commit()
         
-        print("✓ Case 4: Customer Portal data seeded successfully")
+        print("[OK] Case 4: Customer Portal data seeded successfully")
+
+        # ==========================================
+        # Case 5: Underwriting Center Submissions
+        # ==========================================
+        print("Seeding Case 5: Underwriting Center...")
+        
+        # Create brokers
+        marsh = Party(party_type='ORGANIZATION', name='Marsh & McLennan', city='New York', country='USA')
+        willis = Party(party_type='ORGANIZATION', name='Willis Towers Watson', city='London', country='UK')
+        brown = Party(party_type='ORGANIZATION', name='Brown & Brown', city='Chicago', country='USA')
+        alliant = Party(party_type='ORGANIZATION', name='Alliant Insurance Services', city='Los Angeles', country='USA')
+        gallagher = Party(party_type='ORGANIZATION', name='Gallagher', city='Boston', country='USA')
+        risk_strategies = Party(party_type='ORGANIZATION', name='Risk Strategies', city='Boston', country='USA')
+        session.add_all([marsh, willis, brown, alliant, gallagher, risk_strategies])
+        session.commit()
+        
+        # Main demo submission: Floor & Decor Outlets of America, Inc (SUB-2026-001)
+        floor_decor = Party(
+            party_type='ORGANIZATION',
+            name='Floor & Decor Outlets of America, Inc',
+            address='2500 Windy Ridge Parkway SE',
+            city='Atlanta',
+            country='USA',
+            phone='+1 404-471-1634',
+            email='risk@flooranddecor.com'
+        )
+        session.add(floor_decor)
+        session.commit()
+        
+        submission_floor_decor = Submission(
+            submission_number='SUB-2026-001',
+            insured_party_id=floor_decor.id,
+            broker_party_id=marsh.id,
+            status='Triaged',
+            effective_date=datetime.date(2025, 10, 29),
+            completeness=74,
+            priority_score=4.8,
+            risk_appetite='High',
+            broker_tier='Tier 1',
+            created_at=datetime.datetime(2025, 10, 15, 9, 30)
+        )
+        session.add(submission_floor_decor)
+        session.commit()
+        
+        # Other active submissions
+        monrovia = Party(party_type='ORGANIZATION', name='Monrovia Metalworking', city='Monrovia', country='USA')
+        session.add(monrovia)
+        session.commit()
+        
+        submission_monrovia = Submission(
+            submission_number='SUB-2026-003',
+            insured_party_id=monrovia.id,
+            broker_party_id=willis.id,
+            status='In Review',
+            effective_date=datetime.date(2026, 1, 1),
+            completeness=80,
+            priority_score=4.7,
+            risk_appetite='High',
+            broker_tier='Tier 1',
+            created_at=datetime.datetime(2025, 10, 12, 14, 20)
+        )
+        session.add(submission_monrovia)
+        session.commit()
+        
+        # Retail Chain Express
+        retail_chain = Party(party_type='ORGANIZATION', name='Retail Chain Express', city='Houston', country='USA')
+        session.add(retail_chain)
+        session.commit()
+        
+        submission_retail = Submission(
+            submission_number='SUB-2026-005',
+            insured_party_id=retail_chain.id,
+            broker_party_id=brown.id,
+            status='Cleared',
+            effective_date=datetime.date(2026, 1, 15),
+            completeness=78,
+            priority_score=4.5,
+            risk_appetite='High',
+            broker_tier='Tier 2',
+            created_at=datetime.datetime(2025, 10, 10, 11, 45)
+        )
+        session.add(submission_retail)
+        session.commit()
+        
+        # Restaurant Holdings Inc
+        restaurant_holdings = Party(party_type='ORGANIZATION', name='Restaurant Holdings Inc', city='Miami', country='USA')
+        session.add(restaurant_holdings)
+        session.commit()
+        
+        submission_restaurant = Submission(
+            submission_number='SUB-2026-012',
+            insured_party_id=restaurant_holdings.id,
+            broker_party_id=risk_strategies.id,
+            status='Cleared',
+            effective_date=datetime.date(2026, 1, 10),
+            completeness=82,
+            priority_score=4.7,
+            risk_appetite='High',
+            broker_tier='Tier 3',
+            created_at=datetime.datetime(2025, 10, 8, 10, 15)
+        )
+        session.add(submission_restaurant)
+        session.commit()
+        
+        # Construction Dynamics LLC
+        construction_dynamics = Party(party_type='ORGANIZATION', name='Construction Dynamics LLC', city='Denver', country='USA')
+        session.add(construction_dynamics)
+        session.commit()
+        
+        submission_construction = Submission(
+            submission_number='SUB-2026-007',
+            insured_party_id=construction_dynamics.id,
+            broker_party_id=alliant.id,
+            status='Quoted',
+            effective_date=datetime.date(2026, 5, 1),
+            completeness=75,
+            priority_score=4.6,
+            risk_appetite='High',
+            broker_tier='Tier 3',
+            created_at=datetime.datetime(2025, 10, 5, 16, 30)
+        )
+        session.add(submission_construction)
+        session.commit()
+        
+        # Add a quote for Construction Dynamics
+        quote_construction = Quote(
+            submission_id=submission_construction.id,
+            insurer_party_id=insurer_h.id,
+            total_premium=68500,
+            currency='USD',
+            status='SENT',
+            created_at=datetime.datetime(2025, 10, 16, 14, 20)
+        )
+        session.add(quote_construction)
+        session.commit()
+        
+        # Manufacturing Specialists Corp
+        manufacturing_specialists = Party(party_type='ORGANIZATION', name='Manufacturing Specialists Corp', city='Detroit', country='USA')
+        session.add(manufacturing_specialists)
+        session.commit()
+        
+        submission_manufacturing = Submission(
+            submission_number='SUB-2026-016',
+            insured_party_id=manufacturing_specialists.id,
+            broker_party_id=gallagher.id,
+            status='Cleared',
+            effective_date=datetime.date(2025, 2, 12),
+            completeness=89,
+            priority_score=4.9,
+            risk_appetite='High',
+            broker_tier='Tier 1',
+            created_at=datetime.datetime(2025, 10, 2, 9, 0)
+        )
+        session.add(submission_manufacturing)
+        session.commit()
+        
+        print("[OK] Case 5: Underwriting Center data seeded successfully")
 
         session.commit()
         print("Database seeded successfully.")
