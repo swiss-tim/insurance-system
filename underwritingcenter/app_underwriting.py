@@ -219,16 +219,54 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # === DATABASE INITIALIZATION ===
-# Check if database exists and initialize if needed
-db_path = os.path.join(os.path.dirname(__file__), '..', 'pnc_demo.db')
-if not os.path.exists(db_path):
+# Initialize database on first run or if missing
+@st.cache_resource
+def initialize_database():
+    """Initialize the database with demo data"""
     try:
-        # Import seed_database to initialize the database
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-        from seed_database import seed_data
-        seed_data()
+        # Add src to path if not already there
+        src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+        
+        # Import necessary modules
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import Session
+        from seed_database import Base, seed_data, Party
+        
+        # Create database and tables
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pnc_demo.db'))
+        engine = create_engine(f'sqlite:///{db_path}')
+        
+        # Create all tables
+        Base.metadata.create_all(engine)
+        
+        # Check if database is already populated
+        session = Session(engine)
+        party_count = session.query(Party).count()
+        session.close()
+        
+        if party_count == 0:
+            # Database is empty, seed it
+            st.info("🔄 Initializing database with demo data...")
+            seed_data()
+            st.success("✅ Database initialized successfully!")
+        else:
+            # Database already has data
+            st.info("ℹ️ Database already initialized")
+        
+        return True
     except Exception as e:
-        st.error(f"Failed to initialize database: {e}")
+        st.error(f"❌ Failed to initialize database: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return False
+
+# Try to initialize database
+try:
+    initialize_database()
+except Exception as e:
+    st.error(f"Database initialization error: {e}")
 
 # === SESSION STATE INITIALIZATION ===
 if 'current_screen' not in st.session_state:
