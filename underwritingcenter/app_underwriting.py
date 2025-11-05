@@ -145,11 +145,32 @@ st.markdown("""
         border-radius: 8px;
         padding: 1.5rem;
         margin: 1rem 0;
+        color: #1f2937;
+    }
+    
+    .quote-card h2 {
+        color: #1f2937 !important;
+        margin: 0;
+    }
+    
+    .quote-card p {
+        color: #4b5563 !important;
+        margin: 0.5rem 0;
+    }
+    
+    .quote-card hr {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 1rem 0;
     }
     
     .quote-card-selected {
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .quote-card-selected h2 {
+        color: #2563eb !important;
     }
     
     /* Loading overlay */
@@ -223,6 +244,7 @@ if 'submission_state' not in st.session_state:
             'Rural Utilities Service Endorsement': True,
             'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
             'KOTECKI': False,
+            'Benefits Deductible Endorsement': False,
             'Voluntary Compensation Coverage Endorsement': False
         },
         'widget_key_suffix': ''  # Used to force widget refresh
@@ -514,6 +536,7 @@ def render_dashboard():
                                 'Rural Utilities Service Endorsement': True,
                                 'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
                                 'KOTECKI': False,
+                                'Benefits Deductible Endorsement': False,
                                 'Voluntary Compensation Coverage Endorsement': False
                             },
                             'widget_key_suffix': ''
@@ -703,7 +726,7 @@ def render_submission_detail():
         st.markdown("**Impact on Completeness:**")
         st.info("✓ Extracted key risk factors (+8%)\n\n✓ Verified loss run data (+4%)\n\n✓ Assessed safety program quality (+2%)")
         
-        col_accept1, col_accept2 = st.columns([1, 3])
+        col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 2])
         with col_accept1:
             if st.button("✅ Accept Summary", use_container_width=True):
                 st.session_state.show_loading = True
@@ -724,6 +747,11 @@ def render_submission_detail():
                 st.session_state.show_loading = False
                 st.success("✅ Summary accepted! Completeness updated.")
                 time.sleep(1)
+                st.rerun()
+        
+        with col_accept2:
+            if st.button("❌ Dismiss", use_container_width=True, key="dismiss_summary"):
+                st.session_state.submission_state['is_summary_visible'] = False
                 st.rerun()
     
     # === GENERATE PROPOSAL BUTTON (Conditionally rendered) ===
@@ -752,7 +780,6 @@ def render_submission_detail():
             st.checkbox("Workers' Compensation Covered States (Section 3A)", value=True, disabled=True, key="cov_3a")
             st.checkbox("Workers' Compensation And Employers' Liability Insurance Policy (Section 3B)", value=True, disabled=True, key="cov_3b")
             st.checkbox("Terrorism Risk Insurance Program Reauthorization Act Disclosure Endorsement", value=True, disabled=True, key="cov_tria")
-            st.checkbox("Benefits Deductible Endorsement", value=False, disabled=True, key="cov_benefits")
         
         with col_proposal2:
             st.markdown("**Endorsements:**")
@@ -798,15 +825,38 @@ def render_submission_detail():
                         st.rerun()
             
             with col_analyze2:
-                if state['status'].upper() == 'QUOTED':
+                if state['status'].upper() != 'QUOTED':
                     if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_base_quote"):
                         st.session_state.show_loading = True
                         st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
                         time.sleep(3)
+                        
+                        # Update status to Quoted
+                        st.session_state.submission_state['status'] = 'Quoted'
+                        update_submission_status(
+                            st.session_state.selected_submission,
+                            'Quoted'
+                        )
+                        
                         st.session_state.show_loading = False
                         st.success("✅ Quote sent to broker!")
                         time.sleep(1)
-                        # Don't update status here - wait for user to navigate back
+                        st.rerun()
+                elif state['status'].upper() == 'QUOTED':
+                    if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="bind_base_quote"):
+                        st.session_state.show_loading = True
+                        st.session_state.loading_message = "Binding Policy..."
+                        time.sleep(2)
+                        
+                        st.session_state.submission_state['status'] = 'BOUND'
+                        update_submission_status(
+                            st.session_state.selected_submission,
+                            'BOUND'
+                        )
+                        
+                        st.session_state.show_loading = False
+                        st.success("✅ Policy bound successfully!")
+                        time.sleep(2)
                         st.rerun()
         
         # === AI RECOMMENDATIONS (Conditionally rendered) ===
@@ -817,34 +867,48 @@ def render_submission_detail():
             st.info("""
             **AI Analysis suggests:**
             
-            ⚠️ **Add Endorsement: Voluntary Compensation Coverage Endorsement**
+            ⚠️ **Add Endorsements:**
             
-            **Rationale:** Account has high-paid executives who travel internationally. Voluntary compensation provides coverage for executives exempt from standard workers' comp.
+            **1. Voluntary Compensation Coverage Endorsement**
+            - **Rationale:** Account has high-paid executives who travel internationally. Voluntary compensation provides coverage for executives exempt from standard workers' comp.
+            - **Premium Impact:** +$32,875
+            - **Risk Benefit:** Reduces potential coverage gap litigation by 87%
             
-            **Premium Impact:** +$32,875
-            
-            **Risk Benefit:** Reduces potential coverage gap litigation by 87%
+            **2. Benefits Deductible Endorsement**
+            - **Rationale:** Large account with strong safety program. A benefits deductible (per-claim retention) can reduce premium while maintaining full coverage.
+            - **Premium Impact:** -$8,650
+            - **Risk Benefit:** Encourages proactive claims management
             """)
             
-            if st.button("✅ Accept Recommendation", use_container_width=True):
-                st.session_state.show_loading = True
-                st.session_state.loading_message = "Adding Endorsements..."
-                time.sleep(2)
-                
-                # Update endorsement
-                st.session_state.submission_state['endorsements']['Voluntary Compensation Coverage Endorsement'] = True
-                
-                # Change widget key suffix to force checkbox refresh
-                import random
-                st.session_state.submission_state['widget_key_suffix'] = str(random.randint(1000, 9999))
-                
-                st.session_state.show_loading = False
-                st.success("✅ Endorsement added!")
-                time.sleep(1)
-                st.rerun()
+            col_rec1, col_rec2, col_rec3 = st.columns([1, 1, 2])
+            with col_rec1:
+                if st.button("✅ Accept Recommendation", use_container_width=True):
+                    st.session_state.show_loading = True
+                    st.session_state.loading_message = "Adding Endorsements..."
+                    time.sleep(2)
+                    
+                    # Update endorsements
+                    st.session_state.submission_state['endorsements']['Voluntary Compensation Coverage Endorsement'] = True
+                    st.session_state.submission_state['endorsements']['Benefits Deductible Endorsement'] = True
+                    
+                    # Change widget key suffix to force checkbox refresh
+                    import random
+                    st.session_state.submission_state['widget_key_suffix'] = str(random.randint(1000, 9999))
+                    
+                    st.session_state.show_loading = False
+                    st.success("✅ Endorsements added!")
+                    time.sleep(1)
+                    st.rerun()
+            
+            with col_rec2:
+                if st.button("❌ Dismiss", use_container_width=True, key="dismiss_recommendation"):
+                    st.session_state.submission_state['is_recs_visible'] = False
+                    st.rerun()
         
         # === GENERATE NEW QUOTE BUTTON ===
-        if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False) and len(state['quotes']) == 1:
+        has_voluntary = state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False)
+        has_benefits = state['endorsements'].get('Benefits Deductible Endorsement', False)
+        if (has_voluntary or has_benefits) and len(state['quotes']) == 1:
             st.markdown("---")
             col_genq1, col_genq2, col_genq3 = st.columns([1, 2, 1])
             with col_genq2:
@@ -861,16 +925,32 @@ def render_submission_detail():
             st.markdown("---")
             st.markdown("#### 💵 Generated Quote")
             
-            st.markdown("""
+            # Calculate premium based on selected endorsements
+            base_premium = 42459
+            premium = base_premium
+            endorsement_list = []
+            
+            if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
+                premium += 32875
+                endorsement_list.append("Voluntary Compensation")
+            
+            if state['endorsements'].get('Benefits Deductible Endorsement', False):
+                premium -= 8650
+                endorsement_list.append("Benefits Deductible")
+            
+            endorsement_list.extend(["Alternate Employer", "Catastrophe Premium", "Insurance Co. as Insured", "Rural Utilities Service"])
+            endorsement_text = ", ".join(endorsement_list)
+            
+            st.markdown(f"""
             <div class="quote-card quote-card-selected">
-                <h2 style="color: #2563eb;">$75,334</h2>
+                <h2 style="color: #2563eb;">${premium:,.0f}</h2>
                 <p><strong>Annual Premium</strong></p>
                 <hr>
                 <p><strong>Rating Basis:</strong> Manual rates + Endorsements</p>
                 <p><strong>Payroll:</strong> $450,000,000</p>
                 <p><strong>Experience Mod:</strong> 0.95</p>
                 <p><strong>States:</strong> 42 states + DC</p>
-                <p><strong>Endorsements:</strong> Voluntary Compensation, Additional Insured</p>
+                <p><strong>Endorsements:</strong> {endorsement_text}</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -956,28 +1036,65 @@ def render_submission_detail():
             
             with comp_col2:
                 st.markdown("**Generated Quote (Enhanced)**")
-                st.markdown("""
-                **Premium:** $75,334 **(+$32,875)**
+                
+                # Calculate premium and build endorsement list
+                base_premium = 42459
+                generated_premium = base_premium
+                premium_changes = []
+                endorsements_text = []
+                
+                # Base endorsements
+                endorsements_text.extend([
+                    "- Alternate Employer Endorsement",
+                    "- Catastrophe Premium Endorsement",
+                    "- Insurance Company As Insured Endorsement",
+                    "- Rural Utilities Service Endorsement"
+                ])
+                
+                # Add selected optional endorsements
+                if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
+                    generated_premium += 32875
+                    premium_changes.append("+$32,875")
+                    endorsements_text.append("- **Voluntary Compensation Coverage Endorsement** ✨ NEW")
+                
+                if state['endorsements'].get('Benefits Deductible Endorsement', False):
+                    generated_premium -= 8650
+                    premium_changes.append("-$8,650")
+                    endorsements_text.append("- **Benefits Deductible Endorsement** ✨ NEW")
+                
+                premium_diff = generated_premium - base_premium
+                premium_diff_str = f"**(+${premium_diff:,})**" if premium_diff > 0 else f"**(-${abs(premium_diff):,})**" if premium_diff < 0 else ""
+                
+                endorsements_list = "\n".join(endorsements_text)
+                
+                st.markdown(f"""
+                **Premium:** ${generated_premium:,} {premium_diff_str}
                 
                 **Coverages:**
                 - Workers' Compensation Covered States (Section 3A)
                 - Workers' Compensation And Employers' Liability (Section 3B)
                 
                 **Endorsements:**
-                - Alternate Employer Endorsement
-                - Catastrophe Premium Endorsement
-                - Insurance Company As Insured Endorsement
-                - Rural Utilities Service Endorsement
-                - **Voluntary Compensation Coverage Endorsement** ✨ NEW
+                {endorsements_list}
                 
                 **States:** 42 + DC
                 """)
             
             st.markdown("---")
-            st.info("""
-            **💡 Recommendation:** The Generated Quote provides enhanced coverage for executives traveling internationally,
-            reducing potential coverage gap litigation. Premium increase is justified by risk reduction.
-            """)
+            
+            # Build dynamic recommendation text
+            rec_parts = []
+            if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
+                rec_parts.append("enhanced coverage for executives traveling internationally")
+            if state['endorsements'].get('Benefits Deductible Endorsement', False):
+                rec_parts.append("cost savings through benefits deductible")
+            
+            if rec_parts:
+                rec_text = f"**💡 Recommendation:** The Generated Quote provides {' and '.join(rec_parts)}. The premium adjustments reflect the risk-benefit balance."
+            else:
+                rec_text = "**💡 Recommendation:** Base quote provides standard coverage. Consider adding recommended endorsements for enhanced protection."
+            
+            st.info(rec_text)
             
             if st.button("← Back to Quotes"):
                 st.session_state.submission_state['is_comparison_visible'] = False
