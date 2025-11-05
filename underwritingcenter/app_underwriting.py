@@ -217,10 +217,13 @@ if 'submission_state' not in st.session_state:
         'is_comparison_visible': False,
         'quotes': [],  # Will contain 'base' and/or 'generated'
         'endorsements': {
-            'KOTECKI': True,
-            'Voluntary Compensation': False,
-            'Additional Insured': True,
-            'Waiver of Subrogation': False
+            'Alternate Employer Endorsement': True,
+            'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
+            'Insurance Company As Insured Endorsement': True,
+            'Rural Utilities Service Endorsement': True,
+            'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
+            'KOTECKI': False,
+            'Voluntary Compensation Coverage Endorsement': False
         }
     }
 
@@ -433,10 +436,13 @@ def render_dashboard():
                         'is_comparison_visible': False,
                         'quotes': [],
                         'endorsements': {
-                            'KOTECKI': True,
-                            'Voluntary Compensation': False,
-                            'Additional Insured': True,
-                            'Waiver of Subrogation': False
+                            'Alternate Employer Endorsement': True,
+                            'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
+                            'Insurance Company As Insured Endorsement': True,
+                            'Rural Utilities Service Endorsement': True,
+                            'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
+                            'KOTECKI': False,
+                            'Voluntary Compensation Coverage Endorsement': False
                         }
                     }
                 
@@ -582,29 +588,26 @@ def render_submission_detail():
         st.markdown("---")
         st.markdown("### 🤖 Smart Summary")
         
+        # AI Summary Box
         st.markdown("""
-        <div class="ai-summary">
-            <h4>AI-Generated Submission Analysis</h4>
-            <p><strong>Business Overview:</strong> Floor & Decor is a specialty retailer of hard surface flooring and related accessories with 150+ locations across the US. Annual revenue: $3.8B.</p>
-            
-            <p><strong>Coverage Requested:</strong> Workers' Compensation insurance with Admitted Product Details (APD) rating. Estimated annual premium: $1.8M based on payroll of $450M.</p>
-            
-            <p><strong>Loss History:</strong> Moderate loss ratio of 62% over past 3 years. Primary claims: slips/falls in warehouses, forklift incidents, repetitive strain injuries.</p>
-            
-            <p><strong>Risk Factors:</strong></p>
-            <ul>
-                <li>✓ Strong safety program with OSHA compliance</li>
-                <li>✓ Return-to-work program reduces claim duration</li>
-                <li>⚠️ High employee turnover in warehouse positions</li>
-                <li>⚠️ Expansion into new states increases exposure</li>
-            </ul>
-            
-            <p><strong>Recommendation:</strong> Proceed with underwriting. Account meets appetite criteria. Consider voluntary compensation endorsement for enhanced coverage.</p>
-        </div>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+                <h4 style="color: white; margin-top: 0;">AI-Generated Submission Analysis</h4>
+                <p><strong>Business Overview:</strong> Floor & Decor is a specialty retailer of hard surface flooring and related accessories with 150+ locations across the US. Annual revenue: $3.8B.</p>
+                <p><strong>Coverage Requested:</strong> Workers' Compensation insurance with Admitted Product Details (APD) rating. Estimated annual premium: $1.8M based on payroll of $450M.</p>
+                <p><strong>Loss History:</strong> Moderate loss ratio of 62% over past 3 years. Primary claims: slips/falls in warehouses, forklift incidents, repetitive strain injuries.</p>
+                <p><strong>Risk Factors:</strong></p>
+                <ul style="padding-left: 1.5rem;">
+                    <li>Strong safety program with OSHA compliance</li>
+                    <li>Return-to-work program reduces claim duration</li>
+                    <li>High employee turnover in warehouse positions</li>
+                    <li>Expansion into new states increases exposure</li>
+                </ul>
+                <p><strong>Recommendation:</strong> Proceed with underwriting. Account meets appetite criteria. Consider voluntary compensation endorsement for enhanced coverage.</p>
+            </div>
         """, unsafe_allow_html=True)
         
         st.markdown("**Impact on Completeness:**")
-        st.info("✓ Extracted key risk factors (+8%)\n✓ Verified loss run data (+4%)\n✓ Assessed safety program quality (+2%)")
+        st.info("✓ Extracted key risk factors (+8%)\n\n✓ Verified loss run data (+4%)\n\n✓ Assessed safety program quality (+2%)")
         
         col_accept1, col_accept2 = st.columns([1, 3])
         with col_accept1:
@@ -642,12 +645,10 @@ def render_submission_detail():
         
         with col_proposal1:
             st.markdown("**Coverages:**")
-            st.markdown("""
-            - ✓ Workers' Compensation - Statutory
-            - ✓ Employers' Liability - $1,000,000
-            - ✓ Medical Only Coverage
-            - ✓ Occupational Disease
-            """)
+            st.checkbox("Workers' Compensation Covered States (Section 3A)", value=True, disabled=True, key="cov_3a")
+            st.checkbox("Workers' Compensation And Employers' Liability Insurance Policy (Section 3B)", value=True, disabled=True, key="cov_3b")
+            st.checkbox("Terrorism Risk Insurance Program Reauthorization Act Disclosure Endorsement", value=True, disabled=True, key="cov_tria")
+            st.checkbox("Benefits Deductible Endorsement", value=False, disabled=True, key="cov_benefits")
         
         with col_proposal2:
             st.markdown("**Endorsements:**")
@@ -690,7 +691,7 @@ def render_submission_detail():
             
             with col_analyze2:
                 if state['status'] == 'Quoted':
-                    if st.button("📧 Send to Broker", type="primary", use_container_width=True):
+                    if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_base_quote"):
                         st.session_state.show_loading = True
                         st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
                         time.sleep(3)
@@ -708,7 +709,7 @@ def render_submission_detail():
             st.info("""
             **AI Analysis suggests:**
             
-            ⚠️ **Add Endorsement: Voluntary Compensation**
+            ⚠️ **Add Endorsement: Voluntary Compensation Coverage Endorsement**
             
             **Rationale:** Account has high-paid executives who travel internationally. Voluntary compensation provides coverage for executives exempt from standard workers' comp.
             
@@ -721,14 +722,14 @@ def render_submission_detail():
                 st.session_state.show_loading = True
                 st.session_state.loading_message = "Adding Endorsements..."
                 time.sleep(2)
-                st.session_state.submission_state['endorsements']['Voluntary Compensation'] = True
+                st.session_state.submission_state['endorsements']['Voluntary Compensation Coverage Endorsement'] = True
                 st.session_state.show_loading = False
                 st.success("✅ Endorsement added!")
                 time.sleep(1)
                 st.rerun()
         
         # === GENERATE NEW QUOTE BUTTON ===
-        if state['endorsements']['Voluntary Compensation'] and len(state['quotes']) == 1:
+        if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False) and len(state['quotes']) == 1:
             st.markdown("---")
             col_genq1, col_genq2, col_genq3 = st.columns([1, 2, 1])
             with col_genq2:
@@ -770,7 +771,7 @@ def render_submission_detail():
                     st.rerun()
             
             with col_compare2:
-                if st.button("📧 Send to Broker", type="primary", use_container_width=True):
+                if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_generated_quote"):
                     st.session_state.show_loading = True
                     st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
                     time.sleep(3)
@@ -793,12 +794,14 @@ def render_submission_detail():
                 **Premium:** $42,459
                 
                 **Coverages:**
-                - Workers' Compensation - Statutory
-                - Employers' Liability - $1,000,000
+                - Workers' Compensation Covered States (Section 3A)
+                - Workers' Compensation And Employers' Liability (Section 3B)
                 
                 **Endorsements:**
-                - KOTECKI
-                - Additional Insured
+                - Alternate Employer Endorsement
+                - Catastrophe Premium Endorsement
+                - Insurance Company As Insured Endorsement
+                - Rural Utilities Service Endorsement
                 
                 **States:** 42 + DC
                 """)
@@ -809,13 +812,15 @@ def render_submission_detail():
                 **Premium:** $75,334 **(+$32,875)**
                 
                 **Coverages:**
-                - Workers' Compensation - Statutory
-                - Employers' Liability - $1,000,000
+                - Workers' Compensation Covered States (Section 3A)
+                - Workers' Compensation And Employers' Liability (Section 3B)
                 
                 **Endorsements:**
-                - ~~KOTECKI~~ (removed)
-                - Additional Insured
-                - **Voluntary Compensation** ✨
+                - Alternate Employer Endorsement
+                - Catastrophe Premium Endorsement
+                - Insurance Company As Insured Endorsement
+                - Rural Utilities Service Endorsement
+                - **Voluntary Compensation Coverage Endorsement** ✨ NEW
                 
                 **States:** 42 + DC
                 """)
