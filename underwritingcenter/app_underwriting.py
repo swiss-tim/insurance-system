@@ -72,54 +72,60 @@ st.markdown("""
     .status-badge {
         padding: 0.25rem 0.75rem;
         border-radius: 12px;
-        font-size: 0.85rem;
-        font-weight: 500;
+        font-size: 0.75rem;
+        font-weight: 600;
     }
     
     .status-triaged {
-        background-color: #fef3c7;
-        color: #92400e;
+        background-color: #dc2626;
+        color: white;
     }
     
     .status-in-review {
-        background-color: #dbeafe;
-        color: #1e40af;
+        background-color: #ea580c;
+        color: white;
     }
     
     .status-quoted {
-        background-color: #d1fae5;
-        color: #065f46;
+        background-color: #2563eb;
+        color: white;
     }
     
     .status-bound {
-        background-color: #dcfce7;
-        color: #166534;
+        background-color: #059669;
+        color: white;
     }
     
     .status-cleared {
-        background-color: #e0e7ff;
-        color: #3730a3;
+        background-color: #6b7280;
+        color: white;
     }
     
     .status-declined {
-        background-color: #fee2e2;
-        color: #991b1b;
+        background-color: #991b1b;
+        color: white;
     }
     
     /* Appetite badges */
     .appetite-high {
-        background-color: #d1fae5;
-        color: #065f46;
+        background-color: #10b981;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
     }
     
     .appetite-medium {
-        background-color: #fef3c7;
-        color: #92400e;
+        background-color: #f59e0b;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
     }
     
     .appetite-low {
-        background-color: #fee2e2;
-        color: #991b1b;
+        background-color: #ef4444;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
     }
     
     /* Section headers */
@@ -221,9 +227,16 @@ if 'selected_submission' not in st.session_state:
 if 'dashboard_kpis' not in st.session_state:
     st.session_state.dashboard_kpis = {
         'turnaround_time': 4.1,
-        'hit_ratio': 26,
+        'hit_ratio': 28,
         'earned_premium': 1.65,
         'loss_ratio': 49
+    }
+
+# Dashboard chart data
+if 'chart_data' not in st.session_state:
+    st.session_state.chart_data = {
+        'hit_ratio_q4': 32,
+        'premium_q4': 1.65
     }
 
 # Submission detail state (for Floor & Decor demo)
@@ -397,38 +410,43 @@ def render_loading_modal():
 
 def render_dashboard():
     """Render the main dashboard screen"""
-    st.markdown("## 🏢 Guidewire Underwriting Center")
-    st.caption("Enterprise underwriting management platform")
-    
-    st.markdown("---")
+    st.markdown('<h4 style="margin-bottom: 0; margin-top: 0;">Guidewire Underwriting Center</h4>', unsafe_allow_html=True)
     
     # === TOP KPI ROW ===
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
     with kpi_col1:
+        turnaround_delta = "⬇️ -0.2 days" if st.session_state.dashboard_kpis['turnaround_time'] == 3.9 else "⬇️ -0.1 days"
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Quote Turnaround Time</div>
             <div class="kpi-value">{st.session_state.dashboard_kpis['turnaround_time']} Days</div>
-            <div class="kpi-delta">⬇️ -0.1 days</div>
+            <div class="kpi-delta">{turnaround_delta}</div>
         </div>
         """, unsafe_allow_html=True)
     
     with kpi_col2:
+        if st.session_state.dashboard_kpis['hit_ratio'] == 37:
+            hit_ratio_delta = "⬆️ +2% from Q3"
+        elif st.session_state.chart_data['hit_ratio_q4'] == 32:
+            hit_ratio_delta = "⬇️ -3% from Q3"
+        else:
+            hit_ratio_delta = "⬆️ +2% from Q3"
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Average Hit Ratio</div>
             <div class="kpi-value">{st.session_state.dashboard_kpis['hit_ratio']}%</div>
-            <div class="kpi-delta">⬆️ +2% from Q3</div>
+            <div class="kpi-delta">{hit_ratio_delta}</div>
         </div>
         """, unsafe_allow_html=True)
     
     with kpi_col3:
+        premium_delta = "⬆️ +15% YTD" if st.session_state.dashboard_kpis['earned_premium'] == 1.85 else "⬆️ +12% YTD"
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Cumulative Earned Premium</div>
             <div class="kpi-value">${st.session_state.dashboard_kpis['earned_premium']}M</div>
-            <div class="kpi-delta">⬆️ +12% YTD</div>
+            <div class="kpi-delta">{premium_delta}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -442,7 +460,6 @@ def render_dashboard():
         """, unsafe_allow_html=True)
     
     # === CHARTS ROW ===
-    st.markdown("")  # Small spacing
     chart_col1, chart_col2, chart_col3, chart_col4 = st.columns(4)
     
     with chart_col1:
@@ -458,16 +475,75 @@ def render_dashboard():
         st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Average Hit Ratio</p>', unsafe_allow_html=True)
         hit_ratio_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
-            'Hit Ratio %': [19, 24, 29, 22]
+            'Hit Ratio %': [19, 24, 35, st.session_state.chart_data['hit_ratio_q4']]
         })
         
-        chart = alt.Chart(hit_ratio_data).mark_bar(color='#14b8a6', size=40).encode(
+        # Bar chart
+        chart = alt.Chart(hit_ratio_data).mark_bar(color='#14b8a6', size=50).encode(
             x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
             y=alt.Y('Hit Ratio %:Q', 
                     axis=alt.Axis(title=None, grid=True),
                     scale=alt.Scale(domain=[0, 40]))
         ).properties(
-            height=150
+            height=200
+        )
+        
+        # Add text labels on top of bars
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5,
+            color='#0f766e',
+            fontSize=13,
+            fontWeight='bold'
+        ).encode(
+            text=alt.Text('Hit Ratio %:Q', format='.0f')
+        )
+        
+        # Add "good" threshold line
+        threshold_line = alt.Chart(pd.DataFrame({'y': [26]})).mark_rule(
+            color='#65a30d',
+            strokeWidth=2,
+            strokeDash=[5, 5]
+        ).encode(
+            y='y:Q'
+        )
+        
+        # Add "good" label
+        threshold_label = alt.Chart(pd.DataFrame({
+            'x': ['Q4'],
+            'y': [26],
+            'label': ['good']
+        })).mark_text(
+            align='left',
+            dx=10,
+            dy=-5,
+            color='#65a30d',
+            fontSize=11,
+            fontWeight='bold'
+        ).encode(
+            x=alt.X('x:N'),
+            y=alt.Y('y:Q'),
+            text='label:N'
+        )
+        
+        st.altair_chart(chart + text + threshold_line + threshold_label, use_container_width=True)
+    
+    with chart_col3:
+        # Cumulative Earned Premium - Bar chart
+        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Cumulative Earned Premium</p>', unsafe_allow_html=True)
+        premium_data = pd.DataFrame({
+            'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
+            'Premium ($M)': [0.58, 1.02, 1.28, st.session_state.chart_data['premium_q4']]
+        })
+        
+        chart = alt.Chart(premium_data).mark_bar(color='#14b8a6', size=50).encode(
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            y=alt.Y('Premium ($M):Q', 
+                    axis=alt.Axis(title=None, grid=True, format='$,.2f'),
+                    scale=alt.Scale(domain=[0, 2]))
+        ).properties(
+            height=200
         )
         
         # Add text labels on top of bars
@@ -479,38 +555,7 @@ def render_dashboard():
             fontSize=12,
             fontWeight='bold'
         ).encode(
-            text=alt.Text('Hit Ratio %:Q', format='.0f')
-        )
-        
-        st.altair_chart(chart + text, use_container_width=True)
-    
-    with chart_col3:
-        # Cumulative Earned Premium - Bar chart
-        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Cumulative Earned Premium</p>', unsafe_allow_html=True)
-        premium_data = pd.DataFrame({
-            'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
-            'Premium ($M)': [5.8, 10.2, 12.8, 15.2]
-        })
-        
-        chart = alt.Chart(premium_data).mark_bar(color='#14b8a6', size=40).encode(
-            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
-            y=alt.Y('Premium ($M):Q', 
-                    axis=alt.Axis(title=None, grid=True, format='$,.0f'),
-                    scale=alt.Scale(domain=[0, 17]))
-        ).properties(
-            height=150
-        )
-        
-        # Add text labels on top of bars
-        text = chart.mark_text(
-            align='center',
-            baseline='bottom',
-            dy=-5,
-            color='#0f766e',
-            fontSize=11,
-            fontWeight='bold'
-        ).encode(
-            text=alt.Text('Premium ($M):Q', format='$,.1f')
+            text=alt.Text('Premium ($M):Q', format='$,.2f')
         )
         
         st.altair_chart(chart + text, use_container_width=True)
@@ -527,31 +572,29 @@ def render_dashboard():
         line = alt.Chart(loss_ratio_data).mark_line(
             color='#0891b2',
             strokeWidth=3,
-            point=alt.OverlayMarkDef(color='#0891b2', size=60)
+            point=alt.OverlayMarkDef(color='#0891b2', size=80)
         ).encode(
             x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
             y=alt.Y('Loss Ratio %:Q', 
                     axis=alt.Axis(title=None, grid=True, format='.0f'),
                     scale=alt.Scale(domain=[44, 55]))
         ).properties(
-            height=150
+            height=200
         )
         
         # Add text labels on points
         text = line.mark_text(
             align='center',
             baseline='bottom',
-            dy=-10,
+            dy=-12,
             color='#0e7490',
-            fontSize=11,
+            fontSize=12,
             fontWeight='bold'
         ).encode(
             text=alt.Text('Loss Ratio %:Q', format='.0f')
         )
         
         st.altair_chart(line + text, use_container_width=True)
-    
-    st.markdown("---")
     
     # === SUBMISSIONS TABLE ===
     st.markdown("### 📋 My Submissions")
@@ -587,7 +630,17 @@ def render_dashboard():
                             with st.spinner("Binding policy..."):
                                 time.sleep(2)
                                 update_submission_status(sub['id'], 'BOUND')
-                                st.success(f"✅ Policy bound for {sub['account_name']}!")
+                                
+                                # Update dashboard KPIs
+                                st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                                st.session_state.dashboard_kpis['hit_ratio'] = 37
+                                st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                                
+                                # Update chart data
+                                st.session_state.chart_data['hit_ratio_q4'] = 37
+                                st.session_state.chart_data['premium_q4'] = 1.85
+                                
+                                st.success(f"✅ Policy bound for {sub['account_name']}! Metrics updated.")
                                 time.sleep(1)
                                 st.rerun()
                 st.markdown("---")
@@ -743,7 +796,7 @@ def render_submission_detail():
         st.session_state.current_screen = 'dashboard'
         st.rerun()
     
-    st.markdown(f"## {account.name}")
+    st.markdown(f'<h3 style="margin-bottom: 0;">{account.name}</h3>', unsafe_allow_html=True)
     st.caption(f"Submission: {submission.submission_number}")
     
     st.markdown("---")
@@ -965,9 +1018,21 @@ def render_submission_detail():
                             'BOUND'
                         )
                         
+                        # Update dashboard KPIs
+                        st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                        st.session_state.dashboard_kpis['hit_ratio'] = 37
+                        st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                        
+                        # Update chart data
+                        st.session_state.chart_data['hit_ratio_q4'] = 37
+                        st.session_state.chart_data['premium_q4'] = 16.5
+                        
                         st.session_state.show_loading = False
-                        st.success("✅ Policy bound successfully!")
+                        st.success("✅ Policy bound successfully! Dashboard metrics updated.")
                         time.sleep(2)
+                        
+                        # Return to dashboard to show updated metrics
+                        st.session_state.current_screen = 'dashboard'
                         st.rerun()
         
         # === AI RECOMMENDATIONS (Conditionally rendered) ===
@@ -1112,9 +1177,21 @@ def render_submission_detail():
                             'BOUND'
                         )
                         
+                        # Update dashboard KPIs
+                        st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                        st.session_state.dashboard_kpis['hit_ratio'] = 37
+                        st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                        
+                        # Update chart data
+                        st.session_state.chart_data['hit_ratio_q4'] = 37
+                        st.session_state.chart_data['premium_q4'] = 16.5
+                        
                         st.session_state.show_loading = False
-                        st.success("✅ Policy bound successfully!")
+                        st.success("✅ Policy bound successfully! Dashboard metrics updated.")
                         time.sleep(2)
+                        
+                        # Return to dashboard to show updated metrics
+                        st.session_state.current_screen = 'dashboard'
                         st.rerun()
                 else:
                     # Already bound
@@ -1128,68 +1205,75 @@ def render_submission_detail():
             comp_col1, comp_col2 = st.columns(2)
             
             with comp_col1:
-                st.markdown("**Base Quote (Manual Premium)**")
-                st.markdown("""
-                **Premium:** $42,459
+                st.markdown("### Base Quote (Manual Premium)")
+                st.markdown("#### Premium: $42,459")
                 
-                **Coverages:**
+                st.markdown("**Coverages:**")
+                st.markdown("""
                 - Workers' Compensation Covered States (Section 3A)
                 - Workers' Compensation And Employers' Liability (Section 3B)
+                """)
                 
-                **Endorsements:**
+                st.markdown("**Endorsements:**")
+                st.markdown("""
                 - Alternate Employer Endorsement
                 - Catastrophe Premium Endorsement
                 - Insurance Company As Insured Endorsement
                 - Rural Utilities Service Endorsement
-                
-                **States:** 42 + DC
                 """)
+                
+                st.markdown("**States:** 42 + DC")
             
             with comp_col2:
-                st.markdown("**Generated Quote (Enhanced)**")
+                st.markdown("### Generated Quote (Enhanced)")
                 
                 # Calculate premium and build endorsement list
                 base_premium = 42459
                 generated_premium = base_premium
                 premium_changes = []
-                endorsements_text = []
-                
-                # Base endorsements
-                endorsements_text.extend([
-                    "- Alternate Employer Endorsement",
-                    "- Catastrophe Premium Endorsement",
-                    "- Insurance Company As Insured Endorsement",
-                    "- Rural Utilities Service Endorsement"
-                ])
                 
                 # Add selected optional endorsements
                 if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
                     generated_premium += 32875
                     premium_changes.append("+$32,875")
-                    endorsements_text.append("- **Voluntary Compensation Coverage Endorsement** ✨ NEW")
                 
                 if state['endorsements'].get('Benefits Deductible Endorsement', False):
                     generated_premium -= 8650
                     premium_changes.append("-$8,650")
-                    endorsements_text.append("- **Benefits Deductible Endorsement** ✨ NEW")
                 
                 premium_diff = generated_premium - base_premium
-                premium_diff_str = f"**(+${premium_diff:,})**" if premium_diff > 0 else f"**(-${abs(premium_diff):,})**" if premium_diff < 0 else ""
+                if premium_diff > 0:
+                    premium_display = f"#### Premium: ${generated_premium:,} 🔼 (+${premium_diff:,})"
+                elif premium_diff < 0:
+                    premium_display = f"#### Premium: ${generated_premium:,} 🔽 (-${abs(premium_diff):,})"
+                else:
+                    premium_display = f"#### Premium: ${generated_premium:,}"
                 
-                endorsements_list = "\n".join(endorsements_text)
+                st.markdown(premium_display)
                 
-                st.markdown(f"""
-                **Premium:** ${generated_premium:,} {premium_diff_str}
-                
-                **Coverages:**
+                st.markdown("**Coverages:**")
+                st.markdown("""
                 - Workers' Compensation Covered States (Section 3A)
                 - Workers' Compensation And Employers' Liability (Section 3B)
-                
-                **Endorsements:**
-                {endorsements_list}
-                
-                **States:** 42 + DC
                 """)
+                
+                st.markdown("**Endorsements:**")
+                st.markdown("""
+                - Alternate Employer Endorsement
+                - Catastrophe Premium Endorsement
+                - Insurance Company As Insured Endorsement
+                - Rural Utilities Service Endorsement
+                """)
+                
+                # Add selected endorsements with NEW badges
+                if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
+                    st.markdown("- Voluntary Compensation Coverage Endorsement ✨ **NEW**")
+                
+                if state['endorsements'].get('Benefits Deductible Endorsement', False):
+                    st.markdown("- Benefits Deductible Endorsement ✨ **NEW**")
+                
+                st.markdown("")
+                st.markdown("**States:** 42 + DC")
             
             st.markdown("---")
             
