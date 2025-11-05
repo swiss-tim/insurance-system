@@ -248,12 +248,7 @@ def initialize_database():
         
         if party_count == 0:
             # Database is empty, seed it
-            st.info("🔄 Initializing database with demo data...")
             seed_data()
-            st.success("✅ Database initialized successfully!")
-        else:
-            # Database already has data
-            st.info("ℹ️ Database already initialized")
         
         return True
     except Exception as e:
