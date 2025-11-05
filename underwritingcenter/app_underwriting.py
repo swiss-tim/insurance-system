@@ -440,6 +440,42 @@ def render_dashboard():
         </div>
         """, unsafe_allow_html=True)
     
+    # === CHARTS ROW ===
+    st.markdown("")  # Small spacing
+    chart_col1, chart_col2, chart_col3, chart_col4 = st.columns(4)
+    
+    with chart_col1:
+        # Quote Turnaround Time - simple display with trend indicator
+        st.markdown("""
+        <div style="text-align: center; padding: 10px;">
+            <p style="font-size: 0.8em; color: #6b7280; margin: 0;">Target: 4.0 days</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with chart_col2:
+        # Average Hit Ratio - Bar chart
+        hit_ratio_data = pd.DataFrame({
+            'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
+            'Hit Ratio %': [19, 24, 29, 26]
+        })
+        st.bar_chart(hit_ratio_data.set_index('Quarter'), height=150)
+    
+    with chart_col3:
+        # Cumulative Earned Premium - Bar chart
+        premium_data = pd.DataFrame({
+            'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
+            'Premium ($M)': [8.5, 11.2, 13.8, 16.2]
+        })
+        st.bar_chart(premium_data.set_index('Quarter'), height=150)
+    
+    with chart_col4:
+        # In Force Loss Ratio - Line chart
+        loss_ratio_data = pd.DataFrame({
+            'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
+            'Loss Ratio %': [49, 51, 52, 49]
+        })
+        st.line_chart(loss_ratio_data.set_index('Quarter'), height=150)
+    
     st.markdown("---")
     
     # === SUBMISSIONS TABLE ===

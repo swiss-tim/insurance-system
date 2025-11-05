@@ -5,3 +5,4 @@ build proper P&C insurance data model
 build P&C demo insurance system
 build the demo cases below, populating the SQLite database
 review the outcome several times for Consistency and conciseness
+de

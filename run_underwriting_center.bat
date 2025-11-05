@@ -13,7 +13,7 @@ REM Check if database exists
 if not exist "pnc_demo.db" (
     echo [INFO] Database not found. Creating and seeding database...
     cd src
-    python seed_database.py
+    "%USERPROFILE%\anaconda3\envs\insurance2\python.exe" seed_database.py
     if errorlevel 1 (
         echo [ERROR] Failed to create database.
         pause
@@ -42,7 +42,7 @@ echo Press Ctrl+C to stop the server
 echo.
 
 REM Launch the Underwriting Center app
-"%USERPROFILE%\anaconda3\envs\insurance-system\python.exe" -m streamlit run underwritingcenter\app_underwriting.py --server.port 8504
+"%USERPROFILE%\anaconda3\envs\insurance2\python.exe" -m streamlit run underwritingcenter\app_underwriting.py --server.port 8504
 
 pause
 

@@ -16,13 +16,13 @@ echo ======================================================
 echo.
 
 REM Start app_v2.py (Guidewire backend view) on port 8501
-start "Guidewire Backend" cmd /k "cd src && %USERPROFILE%\anaconda3\envs\insurance-system\python.exe -m streamlit run app_v2.py --server.port 8501"
+start "Guidewire Backend" cmd /k "cd src && %USERPROFILE%\anaconda3\envs\insurance2\python.exe -m streamlit run app_v2.py --server.port 8501"
 
 REM Wait 3 seconds before starting second app
 timeout /t 3 /nobreak > nul
 
 REM Start app_customer_portal.py (Customer view) on port 8502
-start "Customer Portal" cmd /k "cd src && %USERPROFILE%\anaconda3\envs\insurance-system\python.exe -m streamlit run app_customer_portal.py --server.port 8502"
+start "Customer Portal" cmd /k "cd src && %USERPROFILE%\anaconda3\envs\insurance2\python.exe -m streamlit run app_customer_portal.py --server.port 8502"
 
 echo.
 echo ✅ Both applications starting...

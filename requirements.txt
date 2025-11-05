@@ -9,7 +9,9 @@ sqlalchemy>=2.0.44
 # AI Integration
 openai>=1.0.0
 
+# Visualization
+altair>=5.5.0  # Required for Python 3.13 compatibility
+
 # Additional dependencies installed automatically:
 # - pandas (for data handling)
 # - pyarrow (for data types)
-# - altair (for charts in streamlit)
