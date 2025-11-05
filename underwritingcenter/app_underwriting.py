@@ -43,29 +43,29 @@ st.markdown("""
     
     /* KPI cards */
     .kpi-card {
-        background: white;
+        background: #1a1a1a;
         padding: 1.5rem;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         text-align: center;
     }
     
     .kpi-title {
         font-size: 0.85rem;
-        color: #666;
+        color: #9ca3af;
         margin-bottom: 0.5rem;
     }
     
     .kpi-value {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #1e40af;
+        color: #ffffff;
         margin: 0.5rem 0;
     }
     
     .kpi-delta {
         font-size: 0.75rem;
-        color: #059669;
+        color: #10b981;
     }
     
     /* Status badges */
@@ -227,7 +227,7 @@ if 'selected_submission' not in st.session_state:
 if 'dashboard_kpis' not in st.session_state:
     st.session_state.dashboard_kpis = {
         'turnaround_time': 4.1,
-        'hit_ratio': 28,
+        'hit_ratio': 32,
         'earned_premium': 1.65,
         'loss_ratio': 49
     }
@@ -411,6 +411,7 @@ def render_loading_modal():
 def render_dashboard():
     """Render the main dashboard screen"""
     st.markdown('<h4 style="margin-bottom: 0; margin-top: 0;">Guidewire Underwriting Center</h4>', unsafe_allow_html=True)
+    st.markdown('<h5 style="margin-top: 0; margin-bottom: 0; color: #4b5563;">📋 My Submissions</h5>', unsafe_allow_html=True)
     
     # === TOP KPI ROW ===
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
@@ -472,7 +473,6 @@ def render_dashboard():
     
     with chart_col2:
         # Average Hit Ratio - Bar chart
-        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Average Hit Ratio</p>', unsafe_allow_html=True)
         hit_ratio_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
             'Hit Ratio %': [19, 24, 35, st.session_state.chart_data['hit_ratio_q4']]
@@ -531,7 +531,6 @@ def render_dashboard():
     
     with chart_col3:
         # Cumulative Earned Premium - Bar chart
-        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">Cumulative Earned Premium</p>', unsafe_allow_html=True)
         premium_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
             'Premium ($M)': [0.58, 1.02, 1.28, st.session_state.chart_data['premium_q4']]
@@ -562,7 +561,6 @@ def render_dashboard():
     
     with chart_col4:
         # In Force Loss Ratio - Line chart
-        st.markdown('<p style="text-align: center; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; font-size: 0.9em;">In Force Loss Ratio</p>', unsafe_allow_html=True)
         loss_ratio_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
             'Loss Ratio %': [49, 51, 52, 49]
@@ -597,8 +595,6 @@ def render_dashboard():
         st.altair_chart(line + text, use_container_width=True)
     
     # === SUBMISSIONS TABLE ===
-    st.markdown("### 📋 My Submissions")
-    
     # Tabs for filtering
     tab1, tab2, tab3 = st.tabs(["Active Submissions", "Bound", "Declined"])
     
