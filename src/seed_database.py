@@ -289,6 +289,50 @@ class EmailTemplate(Base):
     sent_at = Column(TIMESTAMP)
 
 # --- Data Seeding Function ---
+def clear_all_data():
+    """Clear all data from the database while keeping the schema."""
+    print("Clearing existing data...")
+    session = Session()
+    try:
+        # Delete in reverse order of dependencies to avoid foreign key constraints
+        session.query(ChatMessage).delete()
+        session.query(GeneratedAd).delete()
+        session.query(PolicySummary).delete()
+        session.query(EmailTemplate).delete()
+        session.query(CustomerUser).delete()
+        
+        session.query(CashCall).delete()
+        session.query(LayerParticipant).delete()
+        session.query(ReinsuranceLayer).delete()
+        session.query(ReinsuranceTreaty).delete()
+        session.query(PolicyInsurer).delete()
+        
+        session.query(Subrogation).delete()
+        session.query(FinancialTransaction).delete()
+        session.query(ClaimDetail).delete()
+        session.query(Claim).delete()
+        session.query(Document).delete()
+        
+        session.query(PartyRole).delete()
+        session.query(AssetDetail).delete()
+        session.query(AssetLocation).delete()
+        session.query(InsurableAsset).delete()
+        session.query(Coverage).delete()
+        session.query(Policy).delete()
+        session.query(Quote).delete()
+        session.query(Submission).delete()
+        session.query(Party).delete()
+        
+        session.commit()
+        print("[OK] All data cleared successfully")
+        session.close()
+        return True
+    except Exception as e:
+        session.rollback()
+        session.close()
+        print(f"Error clearing data: {e}")
+        return False
+
 def seed_data():
     """Seed the database with demo data."""
     print("Seeding database...")
@@ -846,17 +890,22 @@ Email: maria.weber@example.com""",
         session.close()
 
 if __name__ == '__main__':
-    # Delete existing database when running as script
-    if os.path.exists(DB_FILE):
-        try:
-            os.remove(DB_FILE)
-            print(f"Removed existing database: {DB_FILE}")
-        except PermissionError:
-            print(f"Warning: Could not remove {DB_FILE} - it may be in use.")
-            print("Attempting to recreate tables (this will fail if tables exist)...")
+    # When running as script, check if database exists
+    db_exists = os.path.exists(DB_FILE)
     
-    # Create database schema
-    Base.metadata.create_all(engine)
+    if db_exists:
+        print(f"Database {DB_FILE} already exists.")
+        # Try to clear existing data instead of deleting the file
+        # This allows the script to work even if the database is in use
+        Base.metadata.create_all(engine)  # Ensure schema exists
+        if clear_all_data():
+            print("Ready to seed fresh data...")
+        else:
+            print("Warning: Could not clear all data. Will attempt to seed anyway...")
+    else:
+        print(f"Creating new database: {DB_FILE}")
+        # Create database schema
+        Base.metadata.create_all(engine)
     
     # Seed data (session is created inside seed_data())
     seed_data()

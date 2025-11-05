@@ -224,7 +224,8 @@ if 'submission_state' not in st.session_state:
             'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
             'KOTECKI': False,
             'Voluntary Compensation Coverage Endorsement': False
-        }
+        },
+        'widget_key_suffix': ''  # Used to force widget refresh
     }
 
 # Loading modal state
@@ -314,6 +315,49 @@ def get_submission_details(submission_id):
     session.close()
     return result
 
+def update_submission_status(submission_id, status, completeness=None):
+    """Update submission status and completeness in database"""
+    session = get_session()
+    try:
+        submission = session.query(Submission).get(submission_id)
+        if submission:
+            submission.status = status
+            if completeness is not None:
+                submission.completeness = completeness
+            session.commit()
+            session.close()
+            return True
+    except Exception as e:
+        session.rollback()
+        session.close()
+        st.error(f"Error updating submission: {e}")
+        return False
+    return False
+
+def reset_demo_database():
+    """Reset the database to demo state by running seed script"""
+    import subprocess
+    import sys
+    
+    # Get paths
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    seed_script = os.path.join(project_root, "src", "seed_database.py")
+    
+    # Run seed script - it will clear existing data and re-seed
+    # No need to delete the database file anymore
+    result = subprocess.run(
+        [sys.executable, seed_script],
+        capture_output=True,
+        text=True,
+        cwd=project_root
+    )
+    
+    if result.returncode == 0:
+        return True, "Database reset successfully! ✨"
+    else:
+        return False, result.stderr
+
 # === SCREEN COMPONENTS ===
 
 def render_loading_modal():
@@ -386,72 +430,103 @@ def render_dashboard():
     all_submissions = get_all_submissions()
     
     with tab1:
-        active_subs = [s for s in all_submissions if s['status'] not in ['Bound', 'Declined']]
+        active_subs = [s for s in all_submissions if s['status'].upper() not in ['BOUND', 'DECLINED']]
+        quoted_subs = [s for s in active_subs if s['status'].upper() == 'QUOTED']
+        in_progress_subs = [s for s in active_subs if s['status'].upper() != 'QUOTED']
+        
         if active_subs:
             st.caption(f"Showing {len(active_subs)} active submission(s)")
             
-            # Create DataFrame for display
-            df_display = []
-            for sub in active_subs:
-                df_display.append({
-                    'Account': sub['account_name'],
-                    'Submission': sub['submission_number'],
-                    'Status': sub['status'],
-                    'Broker': sub['broker'],
-                    'Broker Tier': sub['broker_tier'],
-                    'Effective Date': sub['effective_date'].strftime('%Y-%m-%d') if sub['effective_date'] else 'N/A',
-                    'Priority Score': f"{sub['priority_score']:.1f}" if sub['priority_score'] else 'N/A',
-                    'Completeness': f"{sub['completeness']}%" if sub['completeness'] else 'N/A',
-                    'Appetite': sub['risk_appetite']
-                })
+            # Show bind option for quoted submissions first
+            if quoted_subs:
+                st.markdown("**📋 Ready to Bind:**")
+                for sub in quoted_subs:
+                    col_view, col_sub, col_btn = st.columns([1, 2, 1])
+                    with col_view:
+                        if st.button("👁️ View", key=f"view_quoted_{sub['id']}", use_container_width=True):
+                            st.session_state.selected_submission = sub['id']
+                            st.session_state.current_screen = 'submission_detail'
+                            st.rerun()
+                    with col_sub:
+                        st.markdown(f"**{sub['account_name']}**  \n{sub['submission_number']} - *Quoted*")
+                    with col_btn:
+                        if st.button("✅ Bind", key=f"bind_active_{sub['id']}", use_container_width=True):
+                            with st.spinner("Binding policy..."):
+                                time.sleep(2)
+                                update_submission_status(sub['id'], 'BOUND')
+                                st.success(f"✅ Policy bound for {sub['account_name']}!")
+                                time.sleep(1)
+                                st.rerun()
+                st.markdown("---")
             
-            df = pd.DataFrame(df_display)
-            
-            # Display as a clickable table using st.dataframe with selection
-            event = st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row"
-            )
-            
-            # Handle row selection
-            if event and event.selection and event.selection.rows:
-                selected_idx = event.selection.rows[0]
-                selected_sub = active_subs[selected_idx]
-                st.session_state.selected_submission = selected_sub['id']
-                st.session_state.current_screen = 'submission_detail'
+            # Show in-progress submissions
+            if in_progress_subs:
+                st.markdown("**🔄 In Progress:**")
+                # Create DataFrame for display
+                df_display = []
+                for sub in in_progress_subs:
+                    df_display.append({
+                        'Account': sub['account_name'],
+                        'Submission': sub['submission_number'],
+                        'Status': sub['status'],
+                        'Broker': sub['broker'],
+                        'Broker Tier': sub['broker_tier'],
+                        'Effective Date': sub['effective_date'].strftime('%Y-%m-%d') if sub['effective_date'] else 'N/A',
+                        'Priority Score': f"{sub['priority_score']:.1f}" if sub['priority_score'] else 'N/A',
+                        'Completeness': f"{sub['completeness']}%" if sub['completeness'] else 'N/A',
+                        'Appetite': sub['risk_appetite']
+                    })
                 
-                # Reset submission state if switching to Floor & Decor
-                if selected_sub['submission_number'] == 'SUB-2026-001':
-                    st.session_state.submission_state = {
-                        'status': 'Triaged',
-                        'completeness': 74,
-                        'priority_score': 4.8,
-                        'risk_appetite': 'High',
-                        'is_summary_visible': False,
-                        'is_proposal_visible': False,
-                        'is_recs_visible': False,
-                        'is_comparison_visible': False,
-                        'quotes': [],
-                        'endorsements': {
-                            'Alternate Employer Endorsement': True,
-                            'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
-                            'Insurance Company As Insured Endorsement': True,
-                            'Rural Utilities Service Endorsement': True,
-                            'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
-                            'KOTECKI': False,
-                            'Voluntary Compensation Coverage Endorsement': False
+                df = pd.DataFrame(df_display)
+                
+                # Display as a clickable table using st.dataframe with selection
+                event = st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                    on_select="rerun",
+                    selection_mode="single-row"
+                )
+                
+                # Handle row selection
+                if event and event.selection and event.selection.rows:
+                    selected_idx = event.selection.rows[0]
+                    selected_sub = in_progress_subs[selected_idx]
+                    st.session_state.selected_submission = selected_sub['id']
+                    st.session_state.current_screen = 'submission_detail'
+                    
+                    # Reset submission state if switching to Floor & Decor
+                    if selected_sub['submission_number'] == 'SUB-2026-001':
+                        st.session_state.submission_state = {
+                            'status': 'Triaged',
+                            'completeness': 74,
+                            'priority_score': 4.8,
+                            'risk_appetite': 'High',
+                            'is_summary_visible': False,
+                            'is_proposal_visible': False,
+                            'is_recs_visible': False,
+                            'is_comparison_visible': False,
+                            'quotes': [],
+                            'endorsements': {
+                                'Alternate Employer Endorsement': True,
+                                'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
+                                'Insurance Company As Insured Endorsement': True,
+                                'Rural Utilities Service Endorsement': True,
+                                'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
+                                'KOTECKI': False,
+                                'Voluntary Compensation Coverage Endorsement': False
+                            },
+                            'widget_key_suffix': ''
                         }
-                    }
-                
-                st.rerun()
+                    
+                    st.rerun()
         else:
             st.info("No active submissions found.")
     
     with tab2:
-        bound_subs = [s for s in all_submissions if s['status'] == 'Bound']
+        bound_subs = [s for s in all_submissions if s['status'].upper() == 'BOUND']
+        
+        # Show bound submissions
         if bound_subs:
             st.caption(f"Showing {len(bound_subs)} bound submission(s)")
             df_bound = pd.DataFrame([{
@@ -463,10 +538,10 @@ def render_dashboard():
             } for s in bound_subs])
             st.dataframe(df_bound, use_container_width=True, hide_index=True)
         else:
-            st.info("No bound submissions yet.")
+            st.info("No bound submissions yet. Complete the quote process to bind a policy.")
     
     with tab3:
-        declined_subs = [s for s in all_submissions if s['status'] == 'Declined']
+        declined_subs = [s for s in all_submissions if s['status'].upper() == 'DECLINED']
         if declined_subs:
             st.caption(f"Showing {len(declined_subs)} declined submission(s)")
             df_declined = pd.DataFrame([{
@@ -479,10 +554,11 @@ def render_dashboard():
         else:
             st.info("No declined submissions.")
     
-    # Refresh button
+    # Refresh and Reset buttons
     st.markdown("---")
-    col_refresh1, col_refresh2, col_refresh3 = st.columns([1, 2, 1])
-    with col_refresh2:
+    col_refresh1, col_refresh2, col_refresh3 = st.columns(3)
+    
+    with col_refresh1:
         if st.button("🔄 Refresh Metrics", use_container_width=True):
             # Simulate metric update
             st.session_state.show_loading = True
@@ -493,6 +569,24 @@ def render_dashboard():
             st.success("✅ Metrics updated!")
             time.sleep(1)
             st.rerun()
+    
+    with col_refresh3:
+        if st.button("🔄 Reset Demo Data", type="secondary", use_container_width=True, help="Reset all submissions to original demo state"):
+            with st.spinner("Resetting demo data..."):
+                success, message = reset_demo_database()
+                
+                if success:
+                    # Clear session state
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+                    st.success(f"✅ {message}")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error(f"❌ Error: {message}")
+                    if len(message) > 100:
+                        with st.expander("See full error"):
+                            st.code(message)
 
 def render_submission_detail():
     """Render the detailed submission view"""
@@ -615,8 +709,18 @@ def render_submission_detail():
                 st.session_state.show_loading = True
                 st.session_state.loading_message = "Updating Completeness Score..."
                 time.sleep(2)
+                
+                # Update session state
                 st.session_state.submission_state['completeness'] = 86
                 st.session_state.submission_state['status'] = 'In Review'
+                
+                # Save to database
+                update_submission_status(
+                    st.session_state.selected_submission,
+                    'In Review',
+                    completeness=86
+                )
+                
                 st.session_state.show_loading = False
                 st.success("✅ Summary accepted! Completeness updated.")
                 time.sleep(1)
@@ -653,12 +757,16 @@ def render_submission_detail():
         with col_proposal2:
             st.markdown("**Endorsements:**")
             for endo_name, is_checked in state['endorsements'].items():
+                # Create checkbox with current state value
+                # Use widget_key_suffix to force refresh when programmatically updated
                 checkbox_val = st.checkbox(
                     endo_name,
-                    value=is_checked,
-                    key=f"endo_{endo_name}"
+                    value=state['endorsements'][endo_name],  # Always read from session state
+                    key=f"endo_{endo_name}_{state.get('widget_key_suffix', '')}"
                 )
-                st.session_state.submission_state['endorsements'][endo_name] = checkbox_val
+                # Only update if user manually changed it (different from current state)
+                if checkbox_val != state['endorsements'][endo_name]:
+                    st.session_state.submission_state['endorsements'][endo_name] = checkbox_val
         
         # === BASE QUOTE CARD ===
         if 'base' in state['quotes']:
@@ -690,7 +798,7 @@ def render_submission_detail():
                         st.rerun()
             
             with col_analyze2:
-                if state['status'] == 'Quoted':
+                if state['status'].upper() == 'QUOTED':
                     if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_base_quote"):
                         st.session_state.show_loading = True
                         st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
@@ -722,7 +830,14 @@ def render_submission_detail():
                 st.session_state.show_loading = True
                 st.session_state.loading_message = "Adding Endorsements..."
                 time.sleep(2)
+                
+                # Update endorsement
                 st.session_state.submission_state['endorsements']['Voluntary Compensation Coverage Endorsement'] = True
+                
+                # Change widget key suffix to force checkbox refresh
+                import random
+                st.session_state.submission_state['widget_key_suffix'] = str(random.randint(1000, 9999))
+                
                 st.session_state.show_loading = False
                 st.success("✅ Endorsement added!")
                 time.sleep(1)
@@ -771,15 +886,48 @@ def render_submission_detail():
                     st.rerun()
             
             with col_compare2:
-                if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_generated_quote"):
-                    st.session_state.show_loading = True
-                    st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
-                    time.sleep(3)
-                    st.session_state.submission_state['status'] = 'Quoted'
-                    st.session_state.show_loading = False
-                    st.success("✅ Quote sent to broker successfully!")
-                    time.sleep(2)
-                    st.rerun()
+                if state['status'].upper() != 'QUOTED':
+                    if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_generated_quote"):
+                        st.session_state.show_loading = True
+                        st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
+                        time.sleep(3)
+                        
+                        # Update session state
+                        st.session_state.submission_state['status'] = 'Quoted'
+                        
+                        # Save to database
+                        update_submission_status(
+                            st.session_state.selected_submission,
+                            'Quoted'
+                        )
+                        
+                        st.session_state.show_loading = False
+                        st.success("✅ Quote sent to broker successfully!")
+                        time.sleep(2)
+                        st.rerun()
+                elif state['status'].upper() == 'QUOTED':
+                    # Show Bind Policy button after quote is sent
+                    if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="bind_policy_detail"):
+                        st.session_state.show_loading = True
+                        st.session_state.loading_message = "Binding Policy..."
+                        time.sleep(2)
+                        
+                        # Update session state
+                        st.session_state.submission_state['status'] = 'BOUND'
+                        
+                        # Save to database
+                        update_submission_status(
+                            st.session_state.selected_submission,
+                            'BOUND'
+                        )
+                        
+                        st.session_state.show_loading = False
+                        st.success("✅ Policy bound successfully!")
+                        time.sleep(2)
+                        st.rerun()
+                else:
+                    # Already bound
+                    st.info("✅ This policy has been bound and moved to the Bound tab.")
         
         # === QUOTE COMPARISON VIEW ===
         if state['is_comparison_visible']:
