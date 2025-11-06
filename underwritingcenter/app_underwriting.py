@@ -318,6 +318,28 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #1d4ed8;
     }
+    
+    /* Reduce side border space by 80% - default Streamlit padding is ~5rem (80px), reduce to 20% = 1rem (16px) */
+    .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    [data-testid="stAppViewContainer"] > .main {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    /* Remove footer */
+    footer[data-testid="stFooter"] {
+        display: none !important;
+    }
+    
+    /* Also target any footer elements */
+    .stApp footer {
+        display: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -780,60 +802,357 @@ def render_floating_chat():
             st.rerun()
 
 def render_chatbot_sidebar():
-    """Render the AI underwriting assistant chatbot in the sidebar (BACKUP - kept for reference)"""
+    """Render the AI underwriting assistant chatbot in the sidebar with popover-style features"""
+    # Add CSS for sidebar chat - Guidewire styling
+    st.markdown("""
+    <style>
+    /* Style sidebar chat - match header colors, minimize all padding */
+    section[data-testid="stSidebar"] {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        background-color: #3c5c6c !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Style sidebar content area - remove all padding */
+    section[data-testid="stSidebar"] > div {
+        background-color: #3c5c6c !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] > div > div {
+        background-color: #3c5c6c !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Remove padding from sidebar content wrapper */
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Style scrollable container - remove padding and outline */
+    section[data-testid="stSidebar"] [data-testid="element-container"] {
+        background-color: #3c5c6c !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        outline: none !important;
+        border: none !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-baseweb="block"] {
+        background-color: #3c5c6c !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Remove padding from container */
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Minimize padding in scrollable area - target container with height */
+    section[data-testid="stSidebar"] [data-testid="element-container"][style*="height"] {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    
+    /* Remove any borders/outlines from containers */
+    section[data-testid="stSidebar"] [data-testid="element-container"],
+    section[data-testid="stSidebar"] [data-baseweb="block"],
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Target the scrollable container specifically - minimize all padding and remove outline */
+    section[data-testid="stSidebar"] div[style*="overflow"] {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        outline: none !important;
+        border: none !important;
+    }
+    
+    /* Reduce padding on all sidebar content */
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] ul,
+    section[data-testid="stSidebar"] li {
+        margin-left: 4px !important;
+        margin-right: 4px !important;
+    }
+    
+    /* Reduce padding on chat input and disclaimer */
+    section[data-testid="stSidebar"] [data-testid="stChatInput"] {
+        margin-left: 4px !important;
+        margin-right: 4px !important;
+    }
+    
+    section[data-testid="stSidebar"] .sidebar-chat-disclaimer {
+        margin-left: 4px !important;
+        margin-right: 4px !important;
+    }
+    
+    /* Style sidebar header - minimal padding */
+    section[data-testid="stSidebar"] h3 {
+        font-size: 1.125rem !important;
+        font-weight: 600 !important;
+        color: white !important;
+        margin: 8px 8px 6px 8px !important;
+        padding: 0 !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Style paragraphs and text - white on dark background, minimal spacing */
+    section[data-testid="stSidebar"] p {
+        margin: 4px 0 !important;
+        color: white !important;
+        font-size: 0.875rem !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Style bullet points - minimal spacing */
+    section[data-testid="stSidebar"] ul {
+        margin: 4px 0 !important;
+        padding-left: 20px !important;
+        line-height: 1.4 !important;
+    }
+    
+    section[data-testid="stSidebar"] li {
+        margin: 2px 0 !important;
+        color: white !important;
+        font-size: 0.875rem !important;
+    }
+    
+    /* Style suggested questions header */
+    section[data-testid="stSidebar"] p strong {
+        color: white !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        display: block !important;
+        margin-bottom: 4px !important;
+    }
+    
+    /* Style chat messages - dark background compatible, minimal spacing */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] {
+        margin: 4px 0 !important;
+        padding: 8px !important;
+        border-radius: 8px !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageUser"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+    }
+    
+    /* Style text in chat messages - minimal spacing */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] p,
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] div {
+        color: white !important;
+        margin: 2px 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Make avatars 80% smaller - target the avatar container */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] > div:first-child {
+        width: 16px !important;
+        height: 16px !important;
+        min-width: 16px !important;
+        min-height: 16px !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] img,
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] svg {
+        width: 16px !important;
+        height: 16px !important;
+        max-width: 16px !important;
+        max-height: 16px !important;
+    }
+    
+    /* Style user avatar container - light green */
+    section[data-testid="stSidebar"] [data-testid="stChatMessageUser"] > div:first-child {
+        background-color: #86efac !important;
+        border-radius: 50% !important;
+    }
+    
+    /* Style chat input - minimal margins */
+    section[data-testid="stSidebar"] [data-testid="stChatInput"] {
+        margin-top: 4px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    /* Style disclaimer - smaller, below input, visible on dark background */
+    .sidebar-chat-disclaimer {
+        font-size: 0.65rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        margin-top: 2px !important;
+        padding-top: 2px !important;
+        margin-bottom: 2px !important;
+        line-height: 1.3 !important;
+    }
+    
+    .sidebar-chat-disclaimer a {
+        color: #93c5fd !important;
+        text-decoration: none !important;
+    }
+    
+    .sidebar-chat-disclaimer a:hover {
+        text-decoration: underline !important;
+    }
+    
+    /* Style container background */
+    section[data-testid="stSidebar"] [data-baseweb="base-input"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-baseweb="base-input"] input {
+        color: white !important;
+    }
+    </style>
+    <script>
+    (function() {
+        function styleChatAvatars() {
+            const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+            if (!sidebar) return;
+            
+            // Find all assistant chat messages
+            const assistantMessages = sidebar.querySelectorAll('[data-testid="stChatMessageAssistant"]');
+            assistantMessages.forEach(msg => {
+                const avatarContainer = msg.querySelector('div:first-child');
+                if (avatarContainer && !avatarContainer.querySelector('.gw-sparkle')) {
+                    // Clear existing content
+                    avatarContainer.innerHTML = '';
+                    // Add sparkle
+                    const sparkle = document.createElement('span');
+                    sparkle.className = 'gw-sparkle';
+                    sparkle.textContent = '✨';
+                    sparkle.style.fontSize = '12px';
+                    sparkle.style.display = 'flex';
+                    sparkle.style.alignItems = 'center';
+                    sparkle.style.justifyContent = 'center';
+                    sparkle.style.width = '16px';
+                    sparkle.style.height = '16px';
+                    avatarContainer.appendChild(sparkle);
+                    avatarContainer.style.width = '16px';
+                    avatarContainer.style.height = '16px';
+                    avatarContainer.style.minWidth = '16px';
+                    avatarContainer.style.minHeight = '16px';
+                }
+            });
+            
+            // Find all user chat messages
+            const userMessages = sidebar.querySelectorAll('[data-testid="stChatMessageUser"]');
+            userMessages.forEach(msg => {
+                const avatarContainer = msg.querySelector('div:first-child');
+                if (avatarContainer) {
+                    avatarContainer.style.width = '16px';
+                    avatarContainer.style.height = '16px';
+                    avatarContainer.style.minWidth = '16px';
+                    avatarContainer.style.minHeight = '16px';
+                    avatarContainer.style.backgroundColor = '#86efac';
+                    avatarContainer.style.borderRadius = '50%';
+                    // Style any img inside
+                    const img = avatarContainer.querySelector('img');
+                    if (img) {
+                        img.style.width = '16px';
+                        img.style.height = '16px';
+                        img.style.objectFit = 'cover';
+                    }
+                }
+            });
+        }
+        
+        // Run multiple times
+        function run() {
+            styleChatAvatars();
+            setTimeout(styleChatAvatars, 100);
+            setTimeout(styleChatAvatars, 500);
+            setTimeout(styleChatAvatars, 1000);
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+        
+        const observer = new MutationObserver(run);
+        observer.observe(document.body, { childList: true, subtree: true });
+    })();
+    </script>
+    """, unsafe_allow_html=True)
+    
     with st.sidebar:
-        st.markdown("### 🤖 Underwriting Assistant")
-        st.caption(f"*{time.strftime('%I:%M %p')}*")
+        # Chat header - Guidewire style
+        st.markdown("### ✨ Underwriting Assistant")
         
-        # Welcome message (show once)
-        if st.session_state.show_welcome:
-            st.markdown("---")
-            st.markdown("**Welcome back, Alice! Here's what happened since your last login:**")
-            st.markdown("""
-            • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
+        # Scrollable chat history container
+        chat_container = st.container(height=450)
+        with chat_container:
+            # Welcome message (show once) - Guidewire style
+            if st.session_state.show_welcome:
+                st.markdown("""
+                • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
+                
+                • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
+                
+                • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
+                
+                • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
+                """)
+                
+                st.markdown("**Some things you could commonly ask for:**")
+                st.markdown("""
+                • Catch me up
+                • Create an action list
+                • Ask about my metrics
+                """)
             
-            • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
-            
-            • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
-            
-            • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
-            """)
-            
-            st.markdown("**Some things you could commonly ask for:**")
-            st.markdown("""
-            • Catch me up
-            • Create an action list
-            • Show me high-priority items
-            """)
-            
-        # Chat history
-        st.markdown("---")
-        for msg in st.session_state.chat_messages:
-            if msg['role'] == 'user':
-                st.markdown(f"**You:** {msg['content']}")
-            else:
-                st.markdown(f"**Assistant:** {msg['content']}")
-            st.markdown("")
+            # Chat history using st.chat_message
+            for msg in st.session_state.chat_messages:
+                if msg['role'] == 'user':
+                    with st.chat_message("user"):
+                        st.markdown(msg['content'])
+                else:
+                    with st.chat_message("assistant"):
+                        st.markdown(msg['content'])
         
-        # Chat input
+        # Chat input (outside scrollable container - always visible at bottom)
         user_input = st.chat_input("Type your message...")
+        
+        # Disclaimer - Guidewire style (below input)
+        st.markdown("""
+        <div class="sidebar-chat-disclaimer">
+        The above response was generated by an AI system and may not provide a complete and accurate answer. Please reference the provided sources for more detailed information related to your question. <a href="#" style="color: #93c5fd;">Learn more</a>.
+        </div>
+        """, unsafe_allow_html=True)
         
         if user_input:
             # Add user message
             st.session_state.chat_messages.append({'role': 'user', 'content': user_input})
             
-            # Generate AI response based on input
-            response = generate_ai_response(user_input)
+            # Generate AI response and check for navigation triggers
+            response, navigation_action = generate_ai_response_with_navigation(user_input)
             st.session_state.chat_messages.append({'role': 'assistant', 'content': response})
             st.session_state.show_welcome = False
+            
+            # Handle navigation if triggered
+            if navigation_action:
+                handle_chat_navigation(navigation_action)
+            
             st.rerun()
-        
-        # Clear chat button
-        if len(st.session_state.chat_messages) > 0:
-            if st.button("🗑️ Clear Chat", use_container_width=True):
-                st.session_state.chat_messages = []
-                st.session_state.show_welcome = True
-                st.rerun()
 
 def generate_ai_response(user_input):
     """Generate contextual AI responses based on user input"""
@@ -984,8 +1303,8 @@ def handle_chat_navigation(navigation_action):
 
 def render_dashboard():
     """Render the main dashboard screen"""
-    # Render floating chat (ChatGPT-style)
-    render_floating_chat()
+    # Render chatbot sidebar with popover-style features
+    render_chatbot_sidebar()
     
     # Load and encode logo
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
