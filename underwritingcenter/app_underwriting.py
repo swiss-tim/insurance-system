@@ -25,6 +25,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from database_queries import get_session
 from seed_database import Submission, Party, Quote
+from market_config import detect_market, get_market_content, format_currency
 
 # === PAGE CONFIG ===
 st.set_page_config(
@@ -289,6 +290,11 @@ if 'chart_data' not in st.session_state:
 
 # Submission detail state (for Floor & Decor demo)
 if 'submission_state' not in st.session_state:
+    # Default to German market endorsements (will be updated when viewing specific submission)
+    default_market_content = get_market_content('german')
+    all_default_endorsements = {**default_market_content['endorsements']['base'], 
+                                **default_market_content['endorsements']['recommended']}
+    
     st.session_state.submission_state = {
         'status': 'Triaged',
         'completeness': 74,
@@ -299,16 +305,7 @@ if 'submission_state' not in st.session_state:
         'is_recs_visible': False,
         'is_comparison_visible': False,
         'quotes': [],  # Will contain 'base' and/or 'generated'
-        'endorsements': {
-            'Alternate Employer Endorsement': True,
-            'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
-            'Insurance Company As Insured Endorsement': True,
-            'Rural Utilities Service Endorsement': True,
-            'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
-            'KOTECKI': False,
-            'Benefits Deductible Endorsement': False,
-            'Voluntary Compensation Coverage Endorsement': False
-        },
+        'endorsements': all_default_endorsements,
         'widget_key_suffix': ''  # Used to force widget refresh
     }
 
@@ -534,6 +531,15 @@ def render_dashboard():
     
     st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
     
+    # Detect market from first submission in database (German or US)
+    all_submissions = get_all_submissions()
+    dashboard_market = 'us'  # default
+    dashboard_currency = '$'
+    if all_submissions:
+        first_sub = all_submissions[0]
+        dashboard_market = detect_market(first_sub['submission_number'], first_sub.get('account_country', ''))
+    dashboard_currency = '€' if dashboard_market == 'german' else '$'
+    
     # === TOP KPI ROW ===
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
@@ -567,7 +573,7 @@ def render_dashboard():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Cumulative Earned Premium</div>
-            <div class="kpi-value">${st.session_state.dashboard_kpis['earned_premium']}M</div>
+            <div class="kpi-value">{dashboard_currency}{st.session_state.dashboard_kpis['earned_premium']}M</div>
             <div class="kpi-delta">{premium_delta}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -654,29 +660,46 @@ def render_dashboard():
         # Cumulative Earned Premium - Bar chart
         premium_data = pd.DataFrame({
             'Quarter': ['Q1', 'Q2', 'Q3', 'Q4'],
-            'Premium ($M)': [0.58, 1.02, 1.28, st.session_state.chart_data['premium_q4']]
+            'Premium': [0.58, 1.02, 1.28, st.session_state.chart_data['premium_q4']]
         })
         
+        # Dynamic format based on currency
+        y_axis_format = ',.2f' if dashboard_market == 'german' else '$,.2f'
         chart = alt.Chart(premium_data).mark_bar(color='#14b8a6', size=50).encode(
             x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
-            y=alt.Y('Premium ($M):Q', 
-                    axis=alt.Axis(title=None, grid=True, format='$,.2f'),
+            y=alt.Y('Premium:Q', 
+                    axis=alt.Axis(title=None, grid=True, format=y_axis_format),
                     scale=alt.Scale(domain=[0, 2]))
         ).properties(
             height=200
         )
         
-        # Add text labels on top of bars
-        text = chart.mark_text(
-            align='center',
-            baseline='bottom',
-            dy=-5,
-            color='#0f766e',
-            fontSize=12,
-            fontWeight='bold'
-        ).encode(
-            text=alt.Text('Premium ($M):Q', format='$,.2f')
-        )
+        # Add text labels on top of bars with currency-appropriate formatting
+        if dashboard_market == 'german':
+            # For German market, format manually with € symbol
+            premium_data['Label'] = premium_data['Premium'].apply(lambda x: f'€{x:.2f}')
+            text = chart.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-5,
+                color='#0f766e',
+                fontSize=12,
+                fontWeight='bold'
+            ).encode(
+                text='Label:N'
+            )
+        else:
+            # For US market, use standard $ formatting
+            text = chart.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-5,
+                color='#0f766e',
+                fontSize=12,
+                fontWeight='bold'
+            ).encode(
+                text=alt.Text('Premium:Q', format='$,.2f')
+            )
         
         st.altair_chart(chart + text, use_container_width=True)
     
@@ -828,8 +851,16 @@ def render_dashboard():
                     st.session_state.selected_submission = selected_sub['id']
                     st.session_state.current_screen = 'submission_detail'
                     
-                    # Reset submission state if switching to Floor & Decor
-                    if selected_sub['submission_number'] == 'SUB-2026-001':
+                    # Reset submission state if switching to demo submission
+                    if selected_sub['submission_number'] in ['SUB-2026-001', 'SUB-2026-001-DE']:
+                        # Detect market from submission
+                        demo_market = detect_market(selected_sub['submission_number'])
+                        demo_market_content = get_market_content(demo_market)
+                        
+                        # Merge base and recommended endorsements
+                        all_endorsements = {**demo_market_content['endorsements']['base'], 
+                                           **demo_market_content['endorsements']['recommended']}
+                        
                         st.session_state.submission_state = {
                             'status': 'Triaged',
                             'completeness': 74,
@@ -840,16 +871,7 @@ def render_dashboard():
                             'is_recs_visible': False,
                             'is_comparison_visible': False,
                             'quotes': [],
-                            'endorsements': {
-                                'Alternate Employer Endorsement': True,
-                                'Catastrophe (Other Than Certified Acts of Terrorism) Premium Endorsement': True,
-                                'Insurance Company As Insured Endorsement': True,
-                                'Rural Utilities Service Endorsement': True,
-                                'Sole Proprietors, Partners, Officers And Others Coverage Endorsement': False,
-                                'KOTECKI': False,
-                                'Benefits Deductible Endorsement': False,
-                                'Voluntary Compensation Coverage Endorsement': False
-                            },
+                            'endorsements': all_endorsements,
                             'widget_key_suffix': ''
                         }
                     
@@ -985,6 +1007,11 @@ def render_submission_detail():
     account = details['account']
     broker = details['broker']
     
+    # Detect market and get market-specific content
+    market = detect_market(submission.submission_number, account.country)
+    market_content = get_market_content(market)
+    recs = market_content['ai_recommendations']  # Define at function level for use in multiple places
+    
     # Breadcrumb navigation
     if st.button("← Return to Submission List"):
         st.session_state.current_screen = 'dashboard'
@@ -1040,13 +1067,8 @@ def render_submission_detail():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown("""
-        **Recent Documents:**
-        - 📎 Floor_Decor_Submission_Form.pdf (Oct 15, 2025 09:30)
-        - 📎 ACORD_Application.pdf (Oct 15, 2025 09:32)
-        - 📧 Email: Additional Risk Information (Oct 16, 2025 14:45)
-        - 📎 Loss_Runs_2022-2024.xlsx (Oct 16, 2025 15:10)
-        """)
+        docs_list = "\n".join([f"- {doc}" for doc in market_content['documents']])
+        st.markdown(f"**Recent Documents:**\n{docs_list}")
     
     with col2:
         if not state['is_summary_visible']:
@@ -1064,25 +1086,26 @@ def render_submission_detail():
         st.markdown("### 🤖 Smart Summary")
         
         # AI Summary Box
-        st.markdown("""
+        ai_summary = market_content['ai_summary']
+        risk_factors_html = ''.join([f'<li>{factor}</li>' for factor in ai_summary['risk_factors']])
+        
+        summary_html = f"""
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
                 <h4 style="color: white; margin-top: 0;">AI-Generated Submission Analysis</h4>
-                <p><strong>Business Overview:</strong> Floor & Decor is a specialty retailer of hard surface flooring and related accessories with 150+ locations across the US. Annual revenue: $3.8B.</p>
-                <p><strong>Coverage Requested:</strong> Workers' Compensation insurance with Admitted Product Details (APD) rating. Estimated annual premium: $1.8M based on payroll of $450M.</p>
-                <p><strong>Loss History:</strong> Moderate loss ratio of 62% over past 3 years. Primary claims: slips/falls in warehouses, forklift incidents, repetitive strain injuries.</p>
+                <p><strong>Business Overview:</strong> {ai_summary['business_overview']}</p>
+                <p><strong>Coverage Requested:</strong> {ai_summary['coverage_requested']}</p>
+                <p><strong>Loss History:</strong> {ai_summary['loss_history']}</p>
                 <p><strong>Risk Factors:</strong></p>
                 <ul style="padding-left: 1.5rem;">
-                    <li>Strong safety program with OSHA compliance</li>
-                    <li>Return-to-work program reduces claim duration</li>
-                    <li>High employee turnover in warehouse positions</li>
-                    <li>Expansion into new states increases exposure</li>
+                    {risk_factors_html}
                 </ul>
-                <p><strong>Recommendation:</strong> Proceed with underwriting. Account meets appetite criteria. Consider voluntary compensation endorsement for enhanced coverage.</p>
+                <p><strong>Recommendation:</strong> {ai_summary['recommendation']}</p>
             </div>
-        """, unsafe_allow_html=True)
+        """
+        st.markdown(summary_html, unsafe_allow_html=True)
         
         st.markdown("**Impact on Completeness:**")
-        st.info("✓ Extracted key risk factors (+8%)\n\n✓ Verified loss run data (+4%)\n\n✓ Assessed safety program quality (+2%)")
+        st.info(market_content['completeness_impact'])
         
         col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 2])
         with col_accept1:
@@ -1135,9 +1158,10 @@ def render_submission_detail():
         
         with col_proposal1:
             st.markdown("**Coverages:**")
-            st.checkbox("Workers' Compensation Covered States (Section 3A)", value=True, disabled=True, key="cov_3a")
-            st.checkbox("Workers' Compensation And Employers' Liability Insurance Policy (Section 3B)", value=True, disabled=True, key="cov_3b")
-            st.checkbox("Terrorism Risk Insurance Program Reauthorization Act Disclosure Endorsement", value=True, disabled=True, key="cov_tria")
+            # Display market-specific coverages
+            for i, coverage in enumerate(market_content['coverages']):
+                cov_label = f"{coverage['name']} (Limit: {coverage['limit']})"
+                st.checkbox(cov_label, value=coverage['selected'], disabled=True, key=f"cov_{i}")
         
         with col_proposal2:
             st.markdown("**Endorsements:**")
@@ -1156,17 +1180,18 @@ def render_submission_detail():
         # === BASE QUOTE CARD ===
         if 'base' in state['quotes']:
             st.markdown("---")
-            st.markdown("#### 💵 Base Quote (Manual Premium)")
+            st.markdown(f"#### 💵 {market_content['quotes']['base_title']}")
             
-            st.markdown("""
+            base_quote = market_content['quotes']['base']
+            st.markdown(f"""
             <div class="quote-card">
-                <h2 style="color: #2563eb;">$42,459</h2>
+                <h2 style="color: #2563eb;">{base_quote['premium']}</h2>
                 <p><strong>Annual Premium</strong></p>
                 <hr>
-                <p><strong>Rating Basis:</strong> Manual rates per state</p>
-                <p><strong>Payroll:</strong> $450,000,000</p>
-                <p><strong>Experience Mod:</strong> 0.95</p>
-                <p><strong>States:</strong> 42 states + DC</p>
+                <p><strong>Rating Basis:</strong> {base_quote['rating_basis']}</p>
+                <p><strong>{base_quote['exposure_label']}:</strong> {base_quote['exposure_value']}</p>
+                <p><strong>Experience Mod:</strong> {base_quote['experience_mod']}</p>
+                <p><strong>{base_quote['geography_label']}:</strong> {base_quote['geography_value']}</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -1238,32 +1263,29 @@ def render_submission_detail():
             st.markdown("---")
             st.markdown("### 💡 Recommended Changes")
             
-            st.info("""
-            **AI Analysis suggests:**
+            # Build recommendations text from market content
+            recommendations_text = f"**{recs['title']}**\n\n⚠️ **{recs['subtitle']}**\n\n"
             
-            ⚠️ **Add Endorsements:**
+            for i, rec in enumerate(recs['items'], 1):
+                recommendations_text += f"**{i}. {rec['name']}**\n"
+                recommendations_text += f"- **{rec['rationale_label']}:** {rec['rationale']}\n"
+                recommendations_text += f"- **{rec['premium_label']}:** {rec['premium_impact']}\n"
+                recommendations_text += f"- **{rec['benefit_label']}:** {rec['benefit']}\n\n"
             
-            **1. Voluntary Compensation Coverage Endorsement**
-            - **Rationale:** Account has high-paid executives who travel internationally. Voluntary compensation provides coverage for executives exempt from standard workers' comp.
-            - **Premium Impact:** +$32,875
-            - **Risk Benefit:** Reduces potential coverage gap litigation by 87%
-            
-            **2. Benefits Deductible Endorsement**
-            - **Rationale:** Large account with strong safety program. A benefits deductible (per-claim retention) can reduce premium while maintaining full coverage.
-            - **Premium Impact:** -$8,650
-            - **Risk Benefit:** Encourages proactive claims management
-            """)
+            st.info(recommendations_text)
             
             col_rec1, col_rec2, col_rec3 = st.columns([1, 1, 2])
             with col_rec1:
                 if st.button("✅ Accept Recommendation", use_container_width=True):
                     st.session_state.show_loading = True
-                    st.session_state.loading_message = "Adding Endorsements..."
+                    st.session_state.loading_message = market_content['ai_recommendations']['loading_message']
                     time.sleep(2)
                     
-                    # Update endorsements
-                    st.session_state.submission_state['endorsements']['Voluntary Compensation Coverage Endorsement'] = True
-                    st.session_state.submission_state['endorsements']['Benefits Deductible Endorsement'] = True
+                    # Update endorsements based on recommendations
+                    for rec in recs['items']:
+                        endorsement_name = rec['name']
+                        if endorsement_name in st.session_state.submission_state['endorsements']:
+                            st.session_state.submission_state['endorsements'][endorsement_name] = True
                     
                     # Change widget key suffix to force checkbox refresh
                     import random
@@ -1280,9 +1302,14 @@ def render_submission_detail():
                     st.rerun()
         
         # === GENERATE NEW QUOTE BUTTON ===
-        has_voluntary = state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False)
-        has_benefits = state['endorsements'].get('Benefits Deductible Endorsement', False)
-        if (has_voluntary or has_benefits) and len(state['quotes']) == 1:
+        # Check if any recommended endorsements have been selected
+        has_recommended = False
+        for rec in recs['items']:
+            if state['endorsements'].get(rec['name'], False):
+                has_recommended = True
+                break
+        
+        if has_recommended and len(state['quotes']) == 1:
             st.markdown("---")
             col_genq1, col_genq2, col_genq3 = st.columns([1, 2, 1])
             with col_genq2:
@@ -1297,33 +1324,49 @@ def render_submission_detail():
         # === GENERATED QUOTE CARD ===
         if 'generated' in state['quotes'] and not state['is_comparison_visible']:
             st.markdown("---")
-            st.markdown("#### 💵 Generated Quote")
+            st.markdown(f"#### 💵 {market_content['quotes']['generated_title']}")
             
-            # Calculate premium based on selected endorsements
-            base_premium = 42459
-            premium = base_premium
+            # Calculate premium based on selected endorsements from market config
+            base_quote = market_content['quotes']['base']
+            base_premium_value = int(base_quote['premium'].replace('$', '').replace('€', '').replace(',', ''))
+            premium = base_premium_value
             endorsement_list = []
             
-            if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
-                premium += 32875
-                endorsement_list.append("Voluntary Compensation")
+            # Apply premium changes for recommended endorsements
+            for rec in recs['items']:
+                endorsement_name = rec['name']
+                if state['endorsements'].get(endorsement_name, False):
+                    # Parse premium impact (e.g., "+€29.500" or "-€7.800")
+                    impact_str = rec['premium_impact'].replace('€', '').replace('$', '').replace('.', '').replace(',', '')
+                    if '+' in impact_str:
+                        premium += int(impact_str.replace('+', ''))
+                    elif '-' in impact_str:
+                        premium -= int(impact_str.replace('-', ''))
+                    
+                    # Add short name to endorsement list
+                    short_name = endorsement_name.replace(' Baustein', '').replace(' Endorsement', '')
+                    endorsement_list.append(short_name)
             
-            if state['endorsements'].get('Benefits Deductible Endorsement', False):
-                premium -= 8650
-                endorsement_list.append("Benefits Deductible")
+            # Add base endorsements
+            for endo_name, is_selected in market_content['endorsements']['base'].items():
+                if is_selected:
+                    short_name = endo_name.replace(' Baustein', '').replace(' Endorsement', '')
+                    if short_name not in endorsement_list:
+                        endorsement_list.append(short_name)
             
-            endorsement_list.extend(["Alternate Employer", "Catastrophe Premium", "Insurance Co. as Insured", "Rural Utilities Service"])
             endorsement_text = ", ".join(endorsement_list)
             
+            # Format premium with currency symbol
+            currency = '€' if market == 'german' else '$'
             st.markdown(f"""
             <div class="quote-card quote-card-selected">
-                <h2 style="color: #2563eb;">${premium:,.0f}</h2>
+                <h2 style="color: #2563eb;">{currency}{premium:,}</h2>
                 <p><strong>Annual Premium</strong></p>
                 <hr>
-                <p><strong>Rating Basis:</strong> Manual rates + Endorsements</p>
-                <p><strong>Payroll:</strong> $450,000,000</p>
-                <p><strong>Experience Mod:</strong> 0.95</p>
-                <p><strong>States:</strong> 42 states + DC</p>
+                <p><strong>Rating Basis:</strong> {base_quote['rating_basis']} + Endorsements</p>
+                <p><strong>{base_quote['exposure_label']}:</strong> {base_quote['exposure_value']}</p>
+                <p><strong>Experience Mod:</strong> {base_quote['experience_mod']}</p>
+                <p><strong>{base_quote['geography_label']}:</strong> {base_quote['geography_value']}</p>
                 <p><strong>Endorsements:</strong> {endorsement_text}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -1406,85 +1449,85 @@ def render_submission_detail():
             
             comp_col1, comp_col2 = st.columns(2)
             
+            # Get market-specific data
+            base_quote = market_content['quotes']['base']
+            base_premium_value = int(base_quote['premium'].replace('$', '').replace('€', '').replace(',', ''))
+            currency = '€' if market == 'german' else '$'
+            
             with comp_col1:
-                st.markdown("### Base Quote (Manual Premium)")
-                st.markdown("#### Premium: $42,459")
+                st.markdown(f"### {market_content['quotes']['base_title']}")
+                st.markdown(f"#### Premium: {base_quote['premium']}")
                 
                 st.markdown("**Coverages:**")
-                st.markdown("""
-                - Workers' Compensation Covered States (Section 3A)
-                - Workers' Compensation And Employers' Liability (Section 3B)
-                """)
+                coverages_text = "\n".join([f"- {cov['name']} (Limit: {cov['limit']})" for cov in market_content['coverages'] if cov['selected']])
+                st.markdown(coverages_text)
                 
                 st.markdown("**Endorsements:**")
-                st.markdown("""
-                - Alternate Employer Endorsement
-                - Catastrophe Premium Endorsement
-                - Insurance Company As Insured Endorsement
-                - Rural Utilities Service Endorsement
-                """)
+                base_endorsements = [name for name, selected in market_content['endorsements']['base'].items() if selected]
+                base_endo_text = "\n".join([f"- {endo.replace(' Baustein', '').replace(' Endorsement', '')}" for endo in base_endorsements])
+                st.markdown(base_endo_text)
                 
-                st.markdown("**States:** 42 + DC")
+                st.markdown(f"**{base_quote['geography_label']}:** {base_quote['geography_value']}")
             
             with comp_col2:
-                st.markdown("### Generated Quote (Enhanced)")
+                st.markdown(f"### {market_content['quotes']['generated_title']}")
                 
                 # Calculate premium and build endorsement list
-                base_premium = 42459
-                generated_premium = base_premium
+                generated_premium = base_premium_value
                 premium_changes = []
                 
-                # Add selected optional endorsements
-                if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
-                    generated_premium += 32875
-                    premium_changes.append("+$32,875")
+                # Add selected optional endorsements from recommendations
+                for rec in recs['items']:
+                    endorsement_name = rec['name']
+                    if state['endorsements'].get(endorsement_name, False):
+                        # Parse premium impact
+                        impact_str = rec['premium_impact'].replace('€', '').replace('$', '').replace('.', '').replace(',', '')
+                        impact_value = 0
+                        if '+' in impact_str:
+                            impact_value = int(impact_str.replace('+', ''))
+                            generated_premium += impact_value
+                            premium_changes.append(f"+{currency}{impact_value:,}")
+                        elif '-' in impact_str:
+                            impact_value = int(impact_str.replace('-', ''))
+                            generated_premium -= impact_value
+                            premium_changes.append(f"-{currency}{impact_value:,}")
                 
-                if state['endorsements'].get('Benefits Deductible Endorsement', False):
-                    generated_premium -= 8650
-                    premium_changes.append("-$8,650")
-                
-                premium_diff = generated_premium - base_premium
+                premium_diff = generated_premium - base_premium_value
                 if premium_diff > 0:
-                    premium_display = f"#### Premium: ${generated_premium:,} 🔼 (+${premium_diff:,})"
+                    premium_display = f"#### Premium: {currency}{generated_premium:,} 🔼 (+{currency}{premium_diff:,})"
                 elif premium_diff < 0:
-                    premium_display = f"#### Premium: ${generated_premium:,} 🔽 (-${abs(premium_diff):,})"
+                    premium_display = f"#### Premium: {currency}{generated_premium:,} 🔽 (-{currency}{abs(premium_diff):,})"
                 else:
-                    premium_display = f"#### Premium: ${generated_premium:,}"
+                    premium_display = f"#### Premium: {currency}{generated_premium:,}"
                 
                 st.markdown(premium_display)
                 
                 st.markdown("**Coverages:**")
-                st.markdown("""
-                - Workers' Compensation Covered States (Section 3A)
-                - Workers' Compensation And Employers' Liability (Section 3B)
-                """)
+                st.markdown(coverages_text)
                 
                 st.markdown("**Endorsements:**")
-                st.markdown("""
-                - Alternate Employer Endorsement
-                - Catastrophe Premium Endorsement
-                - Insurance Company As Insured Endorsement
-                - Rural Utilities Service Endorsement
-                """)
+                st.markdown(base_endo_text)
                 
                 # Add selected endorsements with NEW badges
-                if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
-                    st.markdown("- Voluntary Compensation Coverage Endorsement ✨ **NEW**")
-                
-                if state['endorsements'].get('Benefits Deductible Endorsement', False):
-                    st.markdown("- Benefits Deductible Endorsement ✨ **NEW**")
+                for rec in recs['items']:
+                    endorsement_name = rec['name']
+                    if state['endorsements'].get(endorsement_name, False):
+                        short_name = endorsement_name.replace(' Baustein', '').replace(' Endorsement', '')
+                        st.markdown(f"- {short_name} ✨ **NEW**")
                 
                 st.markdown("")
-                st.markdown("**States:** 42 + DC")
+                st.markdown(f"**{base_quote['geography_label']}:** {base_quote['geography_value']}")
             
             st.markdown("---")
             
-            # Build dynamic recommendation text
+            # Build dynamic recommendation text from selected endorsements
             rec_parts = []
-            if state['endorsements'].get('Voluntary Compensation Coverage Endorsement', False):
-                rec_parts.append("enhanced coverage for executives traveling internationally")
-            if state['endorsements'].get('Benefits Deductible Endorsement', False):
-                rec_parts.append("cost savings through benefits deductible")
+            for rec in recs['items']:
+                endorsement_name = rec['name']
+                if state['endorsements'].get(endorsement_name, False):
+                    # Extract benefit text (simplified)
+                    benefit = rec['benefit'].lower()
+                    rec_parts.append(benefit)
             
             if rec_parts:
                 rec_text = f"**💡 Recommendation:** The Generated Quote provides {' and '.join(rec_parts)}. The premium adjustments reflect the risk-benefit balance."
@@ -1519,39 +1562,36 @@ def render_submission_detail():
         """)
     
     with tab_info2:
-        st.markdown("""
-        **Industry:** Retail - Hard Surface Flooring & Accessories
+        comp_info = market_content['company_info']
+        st.markdown(f"""
+        **Industry:** {comp_info['industry']}
         
-        **Number of Locations:** 150+ stores across United States
+        **Number of Locations:** {comp_info['locations']}
         
-        **Annual Revenue:** $3.8 Billion
+        **Annual Revenue:** {comp_info['revenue']}
         
-        **Number of Employees:** 8,500+
+        **Number of Employees:** {comp_info['employees']}
         
-        **Annual Payroll:** $450 Million
+        **Annual Payroll:** {comp_info['payroll']}
         
-        **Years in Business:** 25+ years
+        **Years in Business:** {comp_info['years_in_business']}
         """)
     
     with tab_info3:
-        st.markdown("""
+        ops = market_content['operations']
+        primary_ops = '\n        - '.join(ops['primary'])
+        risk_chars = '\n        - '.join(ops['risk_characteristics'])
+        safety_progs = '\n        - '.join(ops['safety_programs'])
+        
+        st.markdown(f"""
         **Primary Operations:**
-        - Retail sales of flooring materials (tile, wood, laminate, vinyl)
-        - In-store design services
-        - Warehouse operations
-        - Delivery and installation services
+        - {primary_ops}
         
         **Risk Characteristics:**
-        - Heavy material handling (forklift operations)
-        - Customer-facing retail environment
-        - Installation crews (higher risk class)
-        - Multi-state operations
+        - {risk_chars}
         
         **Safety Programs:**
-        - OSHA-compliant safety training
-        - Return-to-work program
-        - Quarterly safety audits
-        - Incident investigation protocols
+        - {safety_progs}
         """)
 
 # === MAIN APP ROUTING ===
