@@ -1597,9 +1597,13 @@ def render_submission_detail():
     st.markdown("---")
     st.markdown("### 🏢 Applicant Information")
     
-    tab_info1, tab_info2, tab_info3 = st.tabs(["Headquarters", "Operations", "Risk Description"])
+    # Create tabs based on market
+    if market == 'us':
+        tabs = st.tabs(["Headquarters", "Operations", "Risk Description", "OSHA-Related Review", "SAFER-Related Review", "Exposure Summary", "Claim & Loss History"])
+    else:  # German market
+        tabs = st.tabs(["Headquarters", "Operations", "Risk Description", "Berufsgenossenschaft Review", "Fuhrpark & Logistik", "Risiko-Exposition", "Schaden-Historie"])
     
-    with tab_info1:
+    with tabs[0]:  # Headquarters
         st.markdown(f"""
         **Legal Name:** {account.name}
         
@@ -1614,7 +1618,7 @@ def render_submission_detail():
         **Effective Date:** {submission.effective_date.strftime('%B %d, %Y') if submission.effective_date else 'TBD'}
         """)
     
-    with tab_info2:
+    with tabs[1]:  # Operations
         comp_info = market_content['company_info']
         st.markdown(f"""
         **Industry:** {comp_info['industry']}
@@ -1630,7 +1634,7 @@ def render_submission_detail():
         **Years in Business:** {comp_info['years_in_business']}
         """)
     
-    with tab_info3:
+    with tabs[2]:  # Risk Description
         ops = market_content['operations']
         primary_ops = '\n        - '.join(ops['primary'])
         risk_chars = '\n        - '.join(ops['risk_characteristics'])
@@ -1646,6 +1650,262 @@ def render_submission_detail():
         **Safety Programs:**
         - {safety_progs}
         """)
+    
+    # Additional tabs for U.S. market only
+    if market == 'us':
+        with tabs[3]:  # OSHA-Related Review
+            st.markdown("""
+            **OSHA Compliance Status:** ✅ Compliant
+            
+            **Last OSHA Inspection:** March 15, 2024
+            
+            **Inspection Results:**
+            - No violations cited
+            - Safety program review: Satisfactory
+            - Employee training records: Complete
+            
+            **OSHA 300 Log Summary (2024):**
+            - Total Recordable Cases: 8
+            - Days Away/Restricted/Transfer (DART) Cases: 3
+            - Lost Workday Cases: 2
+            
+            **OSHA Incident Rate:**
+            - Total Recordable Incident Rate (TRIR): 2.1 (Industry Average: 3.5)
+            - DART Rate: 0.8 (Industry Average: 1.8)
+            
+            **Safety Citations History:**
+            - 2024: None
+            - 2023: None
+            - 2022: 1 Minor (corrected within 30 days)
+            """)
+        
+        with tabs[4]:  # SAFER-Related Review
+            st.markdown("""
+            **SAFER System Check:** ✅ Verified
+            
+            **Fleet Safety Status:**
+            - Total Commercial Vehicles: 45 delivery trucks
+            - DOT Compliance: Current
+            - Drug & Alcohol Testing Program: Active
+            
+            **Driver Qualifications:**
+            - Licensed Drivers: 52
+            - MVR Review Frequency: Quarterly
+            - Average Driver Experience: 7.3 years
+            
+            **Vehicle Maintenance:**
+            - Preventive Maintenance Program: Documented
+            - Vehicle Inspection Program: Monthly
+            - Out-of-Service Rate: 0.8% (Excellent)
+            
+            **Safety Scores (Last 24 months):**
+            - Unsafe Driving: 0.2 (Good)
+            - Hours of Service Compliance: 0.4 (Good)
+            - Vehicle Maintenance: 0.1 (Excellent)
+            - Driver Fitness: 0.0 (Excellent)
+            """)
+        
+        with tabs[5]:  # Exposure Summary
+            st.markdown("""
+            **Payroll Distribution:**
+            
+            | Classification | Employees | Annual Payroll | Rate |
+            |----------------|-----------|----------------|------|
+            | Retail Store - Sales | 1,200 | $180M | $0.85 |
+            | Warehouse Operations | 650 | $150M | $2.50 |
+            | Delivery Drivers | 52 | $45M | $4.20 |
+            | Office/Clerical | 320 | $65M | $0.20 |
+            | Management | 28 | $10M | $0.15 |
+            
+            **Total Payroll:** $450,000,000
+            
+            **Geographic Distribution:**
+            - California: $95M (21%)
+            - Texas: $72M (16%)
+            - Florida: $58M (13%)
+            - New York: $45M (10%)
+            - Other 38 states: $180M (40%)
+            
+            **High-Hazard Operations:**
+            - Forklift operations: 650 employees
+            - Loading dock activities: 400 employees
+            - Heavy lifting (>50 lbs): 850 employees
+            """)
+        
+        with tabs[6]:  # Claim & Loss History
+            st.markdown("""
+            **3-Year Loss Summary (2022-2024):**
+            
+            **Total Incurred Losses:** $2,450,000
+            **Total Payroll (3 years):** $1,350,000,000
+            **Loss Rate:** 0.18%
+            
+            **Claim Count by Year:**
+            - 2024: 42 claims ($780,000)
+            - 2023: 48 claims ($890,000)
+            - 2022: 51 claims ($780,000)
+            
+            **Top Claim Categories:**
+            1. Slips/Falls: 38% of claims, $920,000
+            2. Lifting Injuries: 24% of claims, $610,000
+            3. Struck By Object: 18% of claims, $440,000
+            4. Vehicle Accidents: 12% of claims, $310,000
+            5. Other: 8% of claims, $170,000
+            
+            **Large Loss Activity:**
+            - Claims >$100K: 3 total
+            - Largest Single Claim: $285,000 (warehouse forklift incident, 2023)
+            
+            **Experience Modification:**
+            - Current Mod: 0.95
+            - 3-Year Trend: Improving (2022: 1.02 → 2023: 0.98 → 2024: 0.95)
+            
+            **Return-to-Work Program:**
+            - Modified Duty Program: Active
+            - Average Days to Return: 18 days (Industry Avg: 32 days)
+            - RTW Success Rate: 87%
+            """)
+    else:  # German market tabs
+        with tabs[3]:  # Berufsgenossenschaft Review
+            st.markdown("""
+            **BG-Mitgliedschaft:** Berufsgenossenschaft Handel und Warenlogistik (BGHW)
+            
+            **Compliance-Status:** ✅ Vollständig konform
+            
+            **Letzte BG-Prüfung:** 12. April 2024
+            
+            **Prüfungsergebnisse:**
+            - Keine Beanstandungen
+            - Gefährdungsbeurteilungen: Aktuell und vollständig
+            - Unterweisung der Mitarbeiter: Dokumentiert
+            - PSA-Ausstattung: Ausreichend
+            
+            **Arbeitsunfallstatistik 2024:**
+            - Meldepflichtige Arbeitsunfälle: 12
+            - Arbeitsunfälle mit Ausfalltagen: 5
+            - Wegeunfälle: 3
+            
+            **Unfallquote (1.000-Mann-Quote):**
+            - Unternehmensquote: 18,2 (Branchendurchschnitt: 28,5)
+            - Trend: Rückläufig (2022: 24,1 → 2023: 20,8 → 2024: 18,2)
+            
+            **Sicherheitsmaßnahmen:**
+            - Sicherheitsbeauftragter: Bestellt und geschult
+            - Betriebsarzt: Regelmäßige Begehungen
+            - Brandschutzhelfer: 85 geschulte Mitarbeiter
+            - Erste-Hilfe-Personal: 120 ausgebildete Ersthelfer
+            
+            **BG-Beitragssatz 2025:** 0,92% der Lohnsumme (unter Branchendurchschnitt)
+            """)
+        
+        with tabs[4]:  # Fuhrpark & Logistik
+            st.markdown("""
+            **Fuhrpark-Übersicht:** ✅ Gut gewartet
+            
+            **Fahrzeugbestand:**
+            - Transporter (bis 3,5t): 38 Fahrzeuge
+            - LKW (7,5t - 12t): 15 Fahrzeuge
+            - Firmen-PKW: 25 Fahrzeuge
+            - Durchschnittsalter: 3,2 Jahre
+            
+            **Fahrerqualifikation:**
+            - Berufskraftfahrer: 53
+            - Module nach BKrFQG: Alle aktuell
+            - Fahrerunterweisung: Quartalsweise
+            - Durchschnittliche Berufserfahrung: 8,4 Jahre
+            
+            **Flottenmanagement:**
+            - Telematik-System: Flächendeckend installiert
+            - Wartungsintervalle: Herstellervorgaben eingehalten
+            - HU/AU-Quote: 100% aktuell
+            - Fahrtenschreiber-Auswertung: Regelmäßig
+            
+            **Schadensstatistik 2024:**
+            - Haftpflichtschäden: 8 (Schadenquote: 0,4%)
+            - Kaskoschäden: 12 (meist Parkschäden)
+            - Durchschnittliche Schadenhöhe: €2.450
+            
+            **Logistik-KPIs:**
+            - Lieferpünktlichkeit: 96,8%
+            - Beschädigungsquote Transport: 0,08%
+            - Kilometerleistung p.a.: 2,8 Mio. km
+            """)
+        
+        with tabs[5]:  # Risiko-Exposition
+            st.markdown("""
+            **Umsatzverteilung nach Geschäftsbereichen:**
+            
+            | Geschäftsbereich | Mitarbeiter | Jahresumsatz | Anteil |
+            |------------------|-------------|--------------|---------|
+            | Filialen (Verkauf) | 1.850 | €280M | 62% |
+            | Lager & Logistik | 680 | €95M | 21% |
+            | Online-Handel | 145 | €55M | 12% |
+            | Verwaltung | 125 | €20M | 5% |
+            
+            **Gesamtumsatz:** €450 Millionen
+            **Gesamte Lohnsumme:** €85 Millionen
+            
+            **Standortverteilung:**
+            - Nordrhein-Westfalen: 28 Filialen (33%)
+            - Bayern: 22 Filialen (26%)
+            - Baden-Württemberg: 18 Filialen (21%)
+            - Hessen: 10 Filialen (12%)
+            - Sonstige Bundesländer: 7 Filialen (8%)
+            
+            **Hochrisiko-Bereiche:**
+            - Staplerfahrer (Flurförderzeuge): 85 Mitarbeiter
+            - Wareneingang/-ausgang: 420 Mitarbeiter
+            - Schwere Lasten (>25kg): 650 Mitarbeiter
+            - Höhenarbeiten (>3m): 125 Mitarbeiter
+            
+            **Versicherungssummen:**
+            - Betriebshaftpflicht: €10 Millionen
+            - Sachversicherung Gebäude: €15 Millionen
+            - Sachversicherung Inventar: €25 Millionen
+            - Betriebsunterbrechung: €5 Millionen (12 Monate)
+            """)
+        
+        with tabs[6]:  # Schaden-Historie
+            st.markdown("""
+            **3-Jahres-Schadenübersicht (2022-2024):**
+            
+            **Gesamtschadenaufwand:** €1.680.000
+            **Schadenquote:** 62% (Branchendurchschnitt: 75%)
+            **Kombinierte Quote:** 98% (Profitabel)
+            
+            **Schadenzahl nach Jahr:**
+            - 2024: 58 Schäden (€540.000)
+            - 2023: 64 Schäden (€610.000)
+            - 2022: 61 Schäden (€530.000)
+            
+            **Schadenarten (nach Aufwand):**
+            1. Produkthaftpflicht: 28% (€470.000)
+            2. Kundenverletzungen in Filialen: 24% (€405.000)
+            3. Transport-/Montageschäden: 18% (€302.000)
+            4. Sachschäden (Feuer, Einbruch): 16% (€270.000)
+            5. Betriebsunterbrechung: 8% (€135.000)
+            6. Sonstige: 6% (€98.000)
+            
+            **Großschäden (>€50.000):**
+            - Anzahl: 4 Schäden
+            - Größter Einzelschaden: €185.000 (Wasserschaden Zentrallager, 2023)
+            
+            **Schadenentwicklung:**
+            - Trend: Stabil bis leicht rückläufig
+            - Präventionsmaßnahmen: Zeigen Wirkung
+            - Schadenreservierung: Konservativ, 95% Abwicklungsquote
+            
+            **Schaden-Management:**
+            - Durchschnittliche Bearbeitungsdauer: 32 Tage
+            - Regulierungsquote: 89% (außergerichtlich)
+            - Kundenzufriedenheit Schadenabwicklung: 4,2/5,0
+            
+            **Risikoprävention:**
+            - Qualitätssicherung: ISO 9001 zertifiziert
+            - Lieferantenprüfung: Standardisiert
+            - Mitarbeiterschulungen: 2x jährlich verpflichtend
+            """)
+    
 
 # === MAIN APP ROUTING ===
 
