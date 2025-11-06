@@ -147,6 +147,31 @@ st.markdown("""
         font-size: 1rem !important;
     }
     
+    /* Ensure 'My Submissions' header is 1.25rem */
+    .my-submissions-header,
+    h3.my-submissions-header {
+        font-size: 1.25rem !important;
+    }
+    
+    /* Align selectbox and button on the same level */
+    [data-testid="column"] {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important;
+    }
+    
+    /* Remove extra spacing from selectbox label area when label is empty */
+    [data-testid="stSelectbox"] label {
+        display: none !important;
+    }
+    
+    /* Align button with selectbox */
+    [data-testid="column"] [data-testid="stButton"],
+    [data-testid="column"] [data-testid="stSelectbox"] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
     /* Ensure tables/dataframes use 1rem font size - comprehensive targeting */
     [data-testid="stDataFrame"] table,
     [data-testid="stDataFrame"] td,
@@ -338,12 +363,12 @@ st.markdown("""
     }
     
     .quote-card-selected {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #5a9fb8;
+        box-shadow: 0 0 0 3px rgba(90, 159, 184, 0.1);
     }
     
     .quote-card-selected h2 {
-        color: #2563eb !important;
+        color: #5a9fb8 !important;
     }
     
     /* Loading overlay */
@@ -1104,6 +1129,159 @@ def render_chatbot_sidebar():
         max-height: 16px !important;
     }
     
+    /* Style buttons in sidebar chat - Guidewire styling */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] button {
+        font-size: 1rem !important;
+        padding: 0.375rem 1rem !important;
+        height: auto !important;
+        min-height: 1.75rem !important;
+        width: auto !important;
+        min-width: 4rem !important;
+        border-radius: 4px !important;
+        border: 1px solid #3c5c6c !important;
+        background-color: #3c5c6c !important;
+        color: white !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    /* Hover state for buttons */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] button:hover {
+        background-color: #4a6d7d !important;
+        border-color: #4a6d7d !important;
+        cursor: pointer !important;
+    }
+    
+    /* Active/pressed state */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] button:active {
+        background-color: #2d4a56 !important;
+        border-color: #2d4a56 !important;
+    }
+    
+    /* Apply Guidewire button styling to all buttons in main and detail pages */
+    /* Target Streamlit buttons specifically with high specificity */
+    .main button,
+    [data-testid="stAppViewContainer"] > .main button,
+    [data-testid="stAppViewBlockContainer"] button,
+    [data-testid="baseButton-secondary"],
+    [data-testid="baseButton-primary"],
+    button[data-testid="baseButton-secondary"],
+    button[data-testid="baseButton-primary"],
+    .stButton > button,
+    div[data-testid="stButton"] > button,
+    [data-baseweb="button"] {
+        font-size: 1rem !important;
+        padding: 0.375rem 1rem !important;
+        height: auto !important;
+        min-height: 1.75rem !important;
+        width: auto !important;
+        min-width: 4rem !important;
+        border-radius: 4px !important;
+        border: 1px solid #3c5c6c !important;
+        background-color: #3c5c6c !important;
+        background: #3c5c6c !important;
+        color: white !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    /* Hover state for main/detail page buttons */
+    .main button:hover,
+    [data-testid="stAppViewContainer"] > .main button:hover,
+    [data-testid="stAppViewBlockContainer"] button:hover,
+    [data-testid="baseButton-secondary"]:hover,
+    [data-testid="baseButton-primary"]:hover,
+    button[data-testid="baseButton-secondary"]:hover,
+    button[data-testid="baseButton-primary"]:hover,
+    .stButton > button:hover,
+    div[data-testid="stButton"] > button:hover,
+    [data-baseweb="button"]:hover {
+        background-color: #4a6d7d !important;
+        background: #4a6d7d !important;
+        border-color: #4a6d7d !important;
+        cursor: pointer !important;
+    }
+    
+    /* Active/pressed state for main/detail page buttons */
+    .main button:active,
+    [data-testid="stAppViewContainer"] > .main button:active,
+    [data-testid="stAppViewBlockContainer"] button:active,
+    [data-testid="baseButton-secondary"]:active,
+    [data-testid="baseButton-primary"]:active,
+    button[data-testid="baseButton-secondary"]:active,
+    button[data-testid="baseButton-primary"]:active,
+    .stButton > button:active,
+    div[data-testid="stButton"] > button:active,
+    [data-baseweb="button"]:active {
+        background-color: #2d4a56 !important;
+        background: #2d4a56 !important;
+        border-color: #2d4a56 !important;
+    }
+    
+    /* Focus state */
+    .main button:focus,
+    [data-testid="stAppViewContainer"] > .main button:focus,
+    [data-testid="stAppViewBlockContainer"] button:focus,
+    [data-baseweb="button"]:focus {
+        outline: 2px solid #5a9fb8 !important;
+        outline-offset: 2px !important;
+    }
+    
+    /* Override Streamlit button text color and nested elements */
+    .main button *,
+    [data-testid="stAppViewContainer"] > .main button *,
+    [data-testid="stAppViewBlockContainer"] button *,
+    [data-baseweb="button"] *,
+    .stButton > button *,
+    div[data-testid="stButton"] > button * {
+        color: white !important;
+    }
+    
+    /* Override any inline styles that Streamlit might add */
+    .main button[style],
+    [data-testid="stAppViewContainer"] > .main button[style],
+    [data-baseweb="button"][style] {
+        background-color: #3c5c6c !important;
+        background: #3c5c6c !important;
+        border-color: #3c5c6c !important;
+        color: white !important;
+    }
+    
+    /* Prevent buttons from stretching to full width unless explicitly set */
+    .main button:not([style*="width: 100%"]),
+    [data-testid="stAppViewContainer"] > .main button:not([style*="width: 100%"]),
+    [data-baseweb="button"]:not([style*="width: 100%"]) {
+        width: auto !important;
+        max-width: fit-content !important;
+    }
+    
+    /* Ensure sidebar buttons keep their specific styling (higher specificity) */
+    section[data-testid="stSidebar"] button {
+        font-size: 1rem !important;
+        padding: 0.375rem 1rem !important;
+        height: auto !important;
+        min-height: 1.75rem !important;
+        width: auto !important;
+        min-width: 4rem !important;
+        border-radius: 4px !important;
+        border: 1px solid #3c5c6c !important;
+        background-color: #3c5c6c !important;
+        color: white !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    section[data-testid="stSidebar"] button:hover {
+        background-color: #4a6d7d !important;
+        border-color: #4a6d7d !important;
+        cursor: pointer !important;
+    }
+    
+    section[data-testid="stSidebar"] button:active {
+        background-color: #2d4a56 !important;
+        border-color: #2d4a56 !important;
+    }
+    
     /* Style user avatar container - light green */
     section[data-testid="stSidebar"] [data-testid="stChatMessageUser"] > div:first-child {
         background-color: #86efac !important;
@@ -1162,7 +1340,7 @@ def render_chatbot_sidebar():
     }
     
     .sidebar-chat-disclaimer a {
-        color: #93c5fd !important;
+        color: #7db3c4 !important;
         text-decoration: none !important;
         font-size: 0.65rem !important;
     }
@@ -1312,12 +1490,13 @@ def render_chatbot_sidebar():
         with chat_container:
             # Add welcome message to chat history if not already there (so it renders like other messages)
             # Replace double newlines with HTML breaks to preserve paragraphs
-            welcome_text_raw = """Welcome back, Alice! Here's what happened since your last login:
+            welcome_text_raw = """Welcome back, Alice!
+            
+Here's what happened since your last login:
 • Submission volume rose 12% this week, with a surge in Contractors and Healthcare industry, aligning with broader market trends of these lines being written out of the admitted market.
 • Appetite alignment is strong in these segments, while construction and hospitality show rising out-of-appetite flags, reflecting inflation and claims volatility.
 • Tier 1 brokers contributed 71% of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
 • With 8 stale submissions nearing auto-closure, workflow discipline is key.
-
 Some things you could commonly ask for:
 • Catch me up
 • Create an action list
@@ -1366,14 +1545,81 @@ Some things you could commonly ask for:
                     st.session_state.chat_messages.insert(0, {'role': 'assistant', 'content': welcome_text})
             
             # Chat history using st.chat_message
-            for msg in st.session_state.chat_messages:
+            for msg_idx, msg in enumerate(st.session_state.chat_messages):
                 if msg['role'] == 'user':
                     with st.chat_message("user"):
                         st.markdown(msg['content'])
                 else:
                     with st.chat_message("assistant"):
-                        # Use unsafe_allow_html to render HTML breaks for paragraphs
-                        st.markdown(msg['content'], unsafe_allow_html=True)
+                        # Check if message contains submission cards marker
+                        content = msg['content']
+                        if '<!--SUBMISSION_CARDS_START-->' in content or '<!--OPEN_DECLINED_TAB_BUTTON-->' in content:
+                            # Remove markers from display
+                            display_content = content.replace('<!--SUBMISSION_CARDS_START-->', '')
+                            display_content = display_content.replace('<!--OPEN_DECLINED_TAB_BUTTON-->', '')
+                            st.markdown(display_content, unsafe_allow_html=True)
+                            
+                            # Render "Open Declined Tab" button if marker is present and not dismissed
+                            if '<!--OPEN_DECLINED_TAB_BUTTON-->' in content:
+                                dismissed_set = st.session_state.get('dismissed_declined_tab', set())
+                                if msg_idx not in dismissed_set:
+                                    # Buttons in columns for Open and Dismiss
+                                    col_open, col_dismiss = st.columns([1, 1])
+                                    with col_open:
+                                        if st.button("Open", key=f"open_declined_{msg_idx}", use_container_width=True):
+                                            # Navigate to dashboard and set flag to open declined tab
+                                            st.session_state.current_screen = 'dashboard'
+                                            st.session_state.open_declined_tab = True
+                                            st.rerun()
+                                    with col_dismiss:
+                                        if st.button("Dismiss", key=f"dismiss_declined_{msg_idx}", use_container_width=True):
+                                            # Mark declined tab button as dismissed
+                                            if 'dismissed_declined_tab' not in st.session_state:
+                                                st.session_state.dismissed_declined_tab = set()
+                                            st.session_state.dismissed_declined_tab.add(msg_idx)
+                                            st.rerun()
+                                    st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+                            
+                            # Render submission cards with buttons
+                            if 'chat_submission_cards' in st.session_state:
+                                for card_idx, card in enumerate(st.session_state.chat_submission_cards):
+                                    if not card.get('dismissed', False):
+                                        # Determine if we should show bullet points (only if there are details)
+                                        has_details = 'details' in card and len(card.get('details', [])) > 0
+                                        
+                                        # Create a container for the submission card with styling
+                                        message_line = f"• {card['message']}" if has_details else card['message']
+                                        st.markdown(f"""
+                                        <div style="background-color: rgba(255, 255, 255, 0.05); padding: 0.75rem; border-radius: 4px; margin: 0.5rem 0;">
+                                        <strong>{card['submission_number']}</strong><br>
+                                        {message_line}
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                        
+                                        # Display details if available
+                                        if has_details:
+                                            for detail in card['details']:
+                                                st.markdown(f"• {detail}")
+                                        
+                                        # Buttons in columns - smaller size
+                                        col1, col2 = st.columns([1, 1])
+                                        with col1:
+                                            if st.button("Open", key=f"open_card_{msg_idx}_{card_idx}", use_container_width=True):
+                                                # Navigate to submission
+                                                handle_chat_navigation({
+                                                    'type': 'open_submission',
+                                                    'submission_number': card['submission_number']
+                                                })
+                                                st.rerun()
+                                        with col2:
+                                            if st.button("Dismiss", key=f"dismiss_card_{msg_idx}_{card_idx}", use_container_width=True):
+                                                # Mark card as dismissed
+                                                card['dismissed'] = True
+                                                st.rerun()
+                                        st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+                        else:
+                            # Regular message rendering
+                            st.markdown(msg['content'], unsafe_allow_html=True)
         
         # Chat input (outside scrollable container - always visible at bottom)
         user_input = st.chat_input("Type your message...")
@@ -1381,7 +1627,7 @@ Some things you could commonly ask for:
         # Disclaimer - Guidewire style (below input)
         st.markdown("""
         <div class="sidebar-chat-disclaimer">
-        The above response was generated by an AI system and may not provide a complete and accurate answer. Please reference the provided sources for more detailed information related to your question. <a href="#" style="color: #93c5fd;">Learn more</a>.
+        The above response was generated by an AI system and may not provide a complete and accurate answer. Please reference the provided sources for more detailed information related to your question. <a href="#" style="color: #7db3c4;">Learn more</a>.
         </div>
         """, unsafe_allow_html=True)
         
@@ -1406,19 +1652,33 @@ def generate_ai_response(user_input):
     
     # Contextual responses
     if 'catch' in user_input_lower or 'update' in user_input_lower or 'summary' in user_input_lower:
-        return """Here's your quick update:
+        # Store submission cards in session state for rendering
+        if 'chat_submission_cards' not in st.session_state:
+            st.session_state.chat_submission_cards = []
+        
+        # Add submission cards for "catch me up"
+        st.session_state.chat_submission_cards = [
+            {
+                'submission_number': 'SUB-2026-003',
+                'message': 'This submission is ready to be cleared.',
+                'dismissed': False
+            },
+            {
+                'submission_number': 'SUB-2026-001',
+                'message': 'This submission had insufficient documentation when received last Friday.',
+                'details': [
+                    'Email was sent yesterday to the broker to request for missing details.',
+                    'You have received new emails and documents this morning to review for this request.'
+                ],
+                'dismissed': False
+            }
+        ]
+        
+        return """One submission that was not under the basic levels required has been declined. You can check it in the Declined Submissions section.
 
-**Today's Activity:**
-• 3 new submissions received (2 High appetite, 1 Medium)
-• Floor & Decor ready for underwriter review
-• Monrovia Metalworking awaiting additional documents
+<!--OPEN_DECLINED_TAB_BUTTON-->
 
-**Action Items:**
-• Review Floor & Decor submission (Priority Score: 4.8)
-• Follow up with broker on Restaurant Holdings documents
-• 2 quotes pending your approval
-
-Would you like me to open any of these submissions?"""
+<!--SUBMISSION_CARDS_START-->"""
     
     elif 'action' in user_input_lower or 'priority' in user_input_lower or 'todo' in user_input_lower:
         return """**Your Priority Action List:**
@@ -1529,7 +1789,6 @@ def handle_chat_navigation(navigation_action):
         submission_number = navigation_action['submission_number']
         
         # Get all submissions to find the matching one
-        from database_queries import get_all_submissions
         all_submissions = get_all_submissions()
         
         # Find submission by number
@@ -1542,7 +1801,7 @@ def handle_chat_navigation(navigation_action):
         if matching_sub:
             # Set selected submission and navigate to detail page
             st.session_state.selected_submission = matching_sub['id']
-            st.session_state.current_screen = 'detail'
+            st.session_state.current_screen = 'submission_detail'
             st.session_state.chat_open = False  # Close chat after navigation
         else:
             st.warning(f"Submission {submission_number} not found.")
@@ -1675,7 +1934,7 @@ def render_dashboard():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h3 style="margin-top: 0; margin-bottom: 8px; color: #4b5563; font-weight: 700; font-size: 1.25rem !important;">My Submissions</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="my-submissions-header" style="margin-top: 0; margin-bottom: 8px; color: white; font-weight: 700; font-size: 1.25rem !important;">My Submissions</h3>', unsafe_allow_html=True)
     
     # Detect market from first submission in database (German or US)
     all_submissions = get_all_submissions()
@@ -1886,7 +2145,7 @@ def render_dashboard():
             align='center',
             baseline='bottom',
             dy=-12,
-            color='#0e7490',
+            color='#5a9fb8',
             fontSize=12,
             fontWeight='bold'
         ).encode(
@@ -1898,6 +2157,32 @@ def render_dashboard():
     # === SUBMISSIONS TABLE ===
     # Tabs for filtering
     tab1, tab2, tab3 = st.tabs(["Active Submissions", "Bound", "Declined"])
+    
+    # Auto-switch to Declined tab if flag is set
+    if st.session_state.get('open_declined_tab', False):
+        # Use JavaScript to click the Declined tab (index 2) with a small delay to ensure tabs are rendered
+        components.html("""
+        <script>
+        (function() {
+            function clickDeclinedTab() {
+                const tabs = document.querySelectorAll('[data-testid="stTabs"] button');
+                if (tabs.length >= 3) {
+                    // Click the third tab (index 2) which is "Declined"
+                    tabs[2].click();
+                    return true;
+                }
+                return false;
+            }
+            // Try immediately
+            if (!clickDeclinedTab()) {
+                // If tabs aren't ready, try again after a short delay
+                setTimeout(clickDeclinedTab, 100);
+            }
+        })();
+        </script>
+        """, height=0)
+        # Clear the flag after switching
+        st.session_state.open_declined_tab = False
     
     # Get all submissions
     all_submissions = get_all_submissions()
@@ -2074,35 +2359,23 @@ def render_dashboard():
         else:
             st.info("No declined submissions.")
     
-    # Refresh and Reset buttons
+    # Reset button
     st.markdown("---")
-    col_refresh1, col_refresh2, col_refresh3 = st.columns(3)
+    # Market selection dropdown and reset button in one line
+    col_market, col_reset = st.columns([1, 1])
     
-    with col_refresh1:
-        if st.button("🔄 Refresh Metrics", use_container_width=True):
-            # Simulate metric update
-            st.session_state.show_loading = True
-            st.session_state.loading_message = "Updating metrics..."
-            time.sleep(2)
-            st.session_state.dashboard_kpis['turnaround_time'] = 3.9
-            st.session_state.show_loading = False
-            st.success("✅ Metrics updated!")
-            time.sleep(1)
-            st.rerun()
-    
-    with col_refresh3:
-        # Market selection dropdown
+    with col_market:
         market_option = st.selectbox(
-            "Market",
+            "",
             options=["German SHUK", "U.S. Workers' Compensation"],
             index=0,  # German SHUK is default/preselected
-            key="market_selection",
-            help="Select the market for demo data"
+            key="market_selection"
         )
-        
-        # Map display name to internal value
-        market_value = 'german' if market_option == "German SHUK" else 'us'
-        
+    
+    # Map display name to internal value
+    market_value = 'german' if market_option == "German SHUK" else 'us'
+    
+    with col_reset:
         if st.button("🔄 Reset Demo Data", type="secondary", use_container_width=True, help="Reset all submissions to selected market demo state"):
             with st.spinner(f"Resetting demo data with {market_option}..."):
                 success, message = reset_demo_database(market=market_value)
