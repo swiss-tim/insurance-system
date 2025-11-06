@@ -20,6 +20,8 @@ import os
 import time
 import datetime
 import base64
+import textwrap
+import re
 
 # Add parent directory to path to import database modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -140,6 +142,71 @@ st.set_page_config(
 # === CUSTOM CSS ===
 st.markdown("""
 <style>
+    /* Global default font size - override Streamlit's default 0.875rem */
+    * {
+        font-size: 1rem !important;
+    }
+    
+    /* Ensure tables/dataframes use 1rem font size - comprehensive targeting */
+    [data-testid="stDataFrame"] table,
+    [data-testid="stDataFrame"] td,
+    [data-testid="stDataFrame"] th,
+    [data-testid="stDataFrame"] tbody,
+    [data-testid="stDataFrame"] thead,
+    [data-testid="stDataFrame"] tr,
+    [data-testid="stDataFrame"] *,
+    [data-testid="stDataFrame"] table td,
+    [data-testid="stDataFrame"] table th,
+    [data-testid="stDataFrame"] table tbody td,
+    [data-testid="stDataFrame"] table tbody th,
+    [data-testid="stDataFrame"] table thead td,
+    [data-testid="stDataFrame"] table thead th,
+    .stDataFrame table,
+    .stDataFrame td,
+    .stDataFrame th,
+    .stDataFrame tbody,
+    .stDataFrame thead,
+    .stDataFrame tr,
+    .stDataFrame *,
+    .stDataFrame table td,
+    .stDataFrame table th,
+    .stDataFrame table tbody td,
+    .stDataFrame table tbody th,
+    table,
+    table td,
+    table th,
+    table tbody,
+    table thead,
+    table tr,
+    table tbody td,
+    table tbody th,
+    table thead td,
+    table thead th,
+    /* Target all text content in table cells */
+    td *,
+    th *,
+    table td *,
+    table th * {
+        font-size: 1rem !important;
+    }
+    
+    /* Altair/Vega-Lite chart axis labels - set to 0.75rem (12px) */
+    /* Target all SVG text elements in chart containers - axis labels */
+    [data-testid="stVegaLiteChart"] svg text,
+    .stVegaLiteChart svg text,
+    .vega-embed svg text,
+    svg.vega text {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Ensure tabs use 1rem font size */
+    [data-testid="stTabs"] button,
+    [data-testid="stTabs"] [role="tab"],
+    .stTabs button,
+    .stTabs [role="tab"] {
+        font-size: 1rem !important;
+    }
+    
     /* Global styles */
     .main {
         background-color: #f8f9fa;
@@ -155,21 +222,19 @@ st.markdown("""
     }
     
     .kpi-title {
-        font-size: 1rem;
         color: #d1d5db;
         margin-bottom: 0.5rem;
         font-weight: 700;
     }
     
     .kpi-value {
-        font-size: 2.5rem;
+        font-size: 2.5rem !important;
         font-weight: bold;
         color: #ffffff;
         margin: 0.5rem 0;
     }
     
     .kpi-delta {
-        font-size: 0.75rem;
         color: #10b981;
     }
     
@@ -177,7 +242,6 @@ st.markdown("""
     .status-badge {
         padding: 0.25rem 0.75rem;
         border-radius: 12px;
-        font-size: 0.75rem;
         font-weight: 600;
     }
     
@@ -216,26 +280,23 @@ st.markdown("""
         background-color: #10b981;
         color: white;
         font-weight: 600;
-        font-size: 0.75rem;
     }
     
     .appetite-medium {
         background-color: #f59e0b;
         color: white;
         font-weight: 600;
-        font-size: 0.75rem;
     }
     
     .appetite-low {
         background-color: #ef4444;
         color: white;
         font-weight: 600;
-        font-size: 0.75rem;
     }
     
-    /* Section headers */
+    /* Section headers - keep larger size for headers like 'proposal details' */
     .section-header {
-        font-size: 1.25rem;
+        font-size: 1.25rem !important;
         font-weight: 600;
         color: #1f2937;
         margin: 1.5rem 0 1rem 0;
@@ -891,7 +952,7 @@ def render_chatbot_sidebar():
         margin-right: 0px !important;
     }
     
-    /* Style sidebar header - increase left padding to prevent cutoff */
+    /* Style sidebar header - keep larger size for 'underwriting assistant' */
     section[data-testid="stSidebar"] h3 {
         font-size: 1.125rem !important;
         font-weight: 600 !important;
@@ -905,7 +966,6 @@ def render_chatbot_sidebar():
     section[data-testid="stSidebar"] p {
         margin: 0px 0 !important;
         color: white !important;
-        font-size: 0.875rem !important;
         line-height: 1.4 !important;
     }
     
@@ -919,19 +979,64 @@ def render_chatbot_sidebar():
     section[data-testid="stSidebar"] li {
         margin: 2px 0 !important;
         color: white !important;
-        font-size: 0.875rem !important;
     }
     
     /* Style suggested questions header */
     section[data-testid="stSidebar"] p strong {
         color: white !important;
         font-weight: 600 !important;
-        font-size: 0.875rem !important;
         display: block !important;
         margin-bottom: 4px !important;
     }
     
-
+    /* Improve welcome message styling - better spacing and formatting */
+    /* Prevent word breaking in the middle of words - only break at word boundaries */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] p {
+        margin: 0.75rem 0 !important;
+        line-height: 1.6 !important;
+        color: white !important;
+        word-wrap: normal !important;
+        overflow-wrap: normal !important;
+        white-space: normal !important;
+        word-break: normal !important;
+    }
+    
+    /* Ensure HTML divs in chat messages have proper styling - no word breaking, full width */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] div {
+        color: white !important;
+        word-wrap: normal !important;
+        overflow-wrap: normal !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] div p {
+        color: white !important;
+        margin: 0.5rem 0 !important;
+        line-height: 1.6 !important;
+        word-wrap: normal !important;
+        overflow-wrap: normal !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] div strong {
+        color: white !important;
+        font-weight: 700 !important;
+        word-wrap: normal !important;
+        overflow-wrap: normal !important;
+        white-space: normal !important;
+    }
+    
+    /* Keep bold text inline - no special breaking rules */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] strong {
+        display: inline !important;
+    }
     
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageUser"] {
         background-color: rgba(255, 255, 255, 0.1) !important;
@@ -941,14 +1046,23 @@ def render_chatbot_sidebar():
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] {
         background-color: rgba(255, 255, 255, 0.15) !important;
         color: white !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
-    /* Style text in chat messages - minimal spacing */
+    /* Style text in chat messages - minimal spacing, ensure full width */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] p,
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] div {
         color: white !important;
         margin: 2px 0 !important;
         padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     /* Make avatars 80% smaller - target the avatar container */
@@ -1027,10 +1141,12 @@ def render_chatbot_sidebar():
     .sidebar-chat-disclaimer a {
         color: #93c5fd !important;
         text-decoration: none !important;
+        font-size: 0.65rem !important;
     }
     
     .sidebar-chat-disclaimer a:hover {
         text-decoration: underline !important;
+        font-size: 0.65rem !important;
     }
     
     /* Style container background */
@@ -1171,25 +1287,40 @@ def render_chatbot_sidebar():
         # Scrollable chat history container
         chat_container = st.container(height=700)
         with chat_container:
-            # Welcome message (show once) - Guidewire style with avatar
+            # Add welcome message to chat history if not already there (so it renders like other messages)
+            # Replace double newlines with HTML breaks to preserve paragraphs
+            welcome_text_raw = """Welcome back, Alice! Here's what happened since your last login:
+
+• Submission volume rose 12% this week, with a surge in Contractors and Healthcare industry, aligning with broader market trends of these lines being written out of the admitted market.
+• Appetite alignment is strong in these segments, while construction and hospitality show rising out-of-appetite flags, reflecting inflation and claims volatility.
+• Tier 1 brokers contributed 71% of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
+• With 8 stale submissions nearing auto-closure, workflow discipline is key.
+
+
+Some things you could commonly ask for:
+
+• Catch me up
+
+• Create an action list
+
+• Ask about my metrics"""
+            
+            # Split by double newlines to create paragraphs, then join with double <br> tags
+            # This ensures double line breaks are preserved
+            paragraphs = welcome_text_raw.split('\n\n')
+            # Replace single newlines within paragraphs with <br>, then join paragraphs with <br><br>
+            welcome_text = '<br><br>'.join([p.replace('\n', '<br>') for p in paragraphs])
+            
             if st.session_state.show_welcome:
-                with st.chat_message("assistant"):
-                    st.markdown("""
-                    • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
-                    
-                    • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
-                    
-                    • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
-                    
-                    • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
-                    """)
-                    
-                    st.markdown("**Some things you could commonly ask for:**")
-                    st.markdown("""
-                    • Catch me up
-                    • Create an action list
-                    • Ask about my metrics
-                    """)
+                # Add welcome message to chat history so it renders the same way as other messages
+                # Check if welcome message is already in chat history
+                welcome_already_added = any(
+                    msg.get('role') == 'assistant' and 
+                    msg.get('content', '').startswith('Welcome back, Alice!')
+                    for msg in st.session_state.chat_messages
+                )
+                if not welcome_already_added:
+                    st.session_state.chat_messages.insert(0, {'role': 'assistant', 'content': welcome_text})
             
             # Chat history using st.chat_message
             for msg in st.session_state.chat_messages:
@@ -1198,7 +1329,8 @@ def render_chatbot_sidebar():
                         st.markdown(msg['content'])
                 else:
                     with st.chat_message("assistant"):
-                        st.markdown(msg['content'])
+                        # Use unsafe_allow_html to render HTML breaks for paragraphs
+                        st.markdown(msg['content'], unsafe_allow_html=True)
         
         # Chat input (outside scrollable container - always visible at bottom)
         user_input = st.chat_input("Type your message...")
@@ -1488,7 +1620,7 @@ def render_dashboard():
     header[data-testid="stHeader"]::after {{
         content: 'Guidewire Underwriting Center for DräumVersicherung';
         color: white;
-        font-size: 1em;
+        font-size: 1.25rem !important;
         font-weight: 400;
         letter-spacing: 0.3px;
         position: absolute;
@@ -1500,7 +1632,7 @@ def render_dashboard():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h3 style="margin-top: 0; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 style="margin-top: 0; margin-bottom: 8px; color: #4b5563; font-weight: 700; font-size: 1.25rem !important;">My Submissions</h3>', unsafe_allow_html=True)
     
     # Detect market from first submission in database (German or US)
     all_submissions = get_all_submissions()
@@ -1565,7 +1697,7 @@ def render_dashboard():
         # Quote Turnaround Time - simple display with trend indicator
         st.markdown("""
         <div style="text-align: center; padding: 10px;">
-            <p style="font-size: 0.8em; color: #6b7280; margin: 0;">Target: 4.0 days</p>
+            <p style="color: #6b7280; margin: 0;">Target: 4.0 days</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1581,9 +1713,9 @@ def render_dashboard():
         
         # Bar chart
         chart = alt.Chart(hit_ratio_data).mark_bar(color='#14b8a6', size=50).encode(
-            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0, labelFontSize=12, labelFont='Arial')),
             y=alt.Y('Hit Ratio %:Q', 
-                    axis=alt.Axis(title=None, grid=True),
+                    axis=alt.Axis(title=None, grid=True, labelFontSize=12, labelFont='Arial'),
                     scale=alt.Scale(domain=[0, 40]))
         ).properties(
             height=200
@@ -1628,7 +1760,12 @@ def render_dashboard():
             text='label:N'
         )
         
-        st.altair_chart(chart + text + threshold_line + threshold_label, use_container_width=True)
+        # Combine charts and configure axis label size
+        combined_chart = (chart + text + threshold_line + threshold_label).configure_axis(
+            labelFontSize=12
+        )
+        
+        st.altair_chart(combined_chart, use_container_width=True)
     
     with chart_col3:
         # Cumulative Earned Premium - Bar chart
@@ -1640,9 +1777,9 @@ def render_dashboard():
         # Dynamic format based on currency
         y_axis_format = ',.2f' if dashboard_market == 'german' else '$,.2f'
         chart = alt.Chart(premium_data).mark_bar(color='#14b8a6', size=50).encode(
-            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0, labelFontSize=12)),
             y=alt.Y('Premium:Q', 
-                    axis=alt.Axis(title=None, grid=True, format=y_axis_format),
+                    axis=alt.Axis(title=None, grid=True, format=y_axis_format, labelFontSize=12),
                     scale=alt.Scale(domain=[0, 2]))
         ).properties(
             height=200
@@ -1693,9 +1830,9 @@ def render_dashboard():
             strokeWidth=3,
             point=alt.OverlayMarkDef(color='#0891b2', size=80)
         ).encode(
-            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
+            x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0, labelFontSize=12)),
             y=alt.Y('Loss Ratio %:Q', 
-                    axis=alt.Axis(title=None, grid=True, format='.0f'),
+                    axis=alt.Axis(title=None, grid=True, format='.0f', labelFontSize=12),
                     scale=alt.Scale(domain=[44, 55]))
         ).properties(
             height=200
@@ -2056,7 +2193,7 @@ def render_submission_detail():
     header[data-testid="stHeader"]::after {{
         content: 'Guidewire Underwriting Center for DräumVersicherung';
         color: white;
-        font-size: 1em;
+        font-size: 1.25rem !important;
         font-weight: 400;
         letter-spacing: 0.3px;
         position: absolute;
@@ -2106,7 +2243,7 @@ def render_submission_detail():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Status</div>
-            <div style="margin: 1rem 0; font-size: 1.5rem; font-weight: 600;">{get_status_badge(state['status'])}</div>
+            <div class="kpi-value">{get_status_badge(state['status'])}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -2114,7 +2251,7 @@ def render_submission_detail():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Risk Appetite</div>
-            <div style="margin: 1rem 0; font-size: 1.5rem; font-weight: 600;">{get_appetite_badge(state['risk_appetite'])}</div>
+            <div class="kpi-value">{get_appetite_badge(state['risk_appetite'])}</div>
         </div>
         """, unsafe_allow_html=True)
     
