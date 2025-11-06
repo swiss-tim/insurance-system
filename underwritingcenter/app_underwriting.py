@@ -772,7 +772,7 @@ def render_chatbot_sidebar():
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         background-color: #3c5c6c !important;
         padding: 0 !important;
-        padding-left: 30px !important;
+        padding-left: 40px !important;
         padding-right: 0px !important;
         padding-bottom: 0 !important;
         margin: 0 !important;
@@ -973,11 +973,27 @@ def render_chatbot_sidebar():
         border-radius: 50% !important;
     }
     
-    /* Style chat input - minimal margins, no bottom padding */
+    /* Style chat input - minimal margins, no bottom padding, auto-grow */
     section[data-testid="stSidebar"] [data-testid="stChatInput"] {
         margin-top: 4px !important;
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
+    }
+    
+    /* Make chat input textarea auto-grow - one line initially, grows with content */
+    section[data-testid="stSidebar"] [data-testid="stChatInput"] textarea {
+        min-height: 1.5rem !important;
+        max-height: 200px !important;
+        height: auto !important;
+        resize: none !important;
+        overflow-y: auto !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Target the input container to allow growth */
+    section[data-testid="stSidebar"] [data-testid="stChatInput"] [data-baseweb="base-input"] {
+        min-height: auto !important;
+        height: auto !important;
     }
     
     /* Style disclaimer - smaller, below input, no bottom padding */
@@ -1095,6 +1111,55 @@ def render_chatbot_sidebar():
         
         const observer = new MutationObserver(run);
         observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Auto-grow chat input textarea
+        function setupAutoGrow() {
+            const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+            if (!sidebar) return;
+            
+            const chatInput = sidebar.querySelector('[data-testid="stChatInput"]');
+            if (!chatInput) return;
+            
+            const textarea = chatInput.querySelector('textarea');
+            if (!textarea) return;
+            
+            // Set initial height to one line
+            textarea.style.height = 'auto';
+            textarea.style.minHeight = '1.5rem';
+            textarea.style.maxHeight = '200px';
+            textarea.style.overflowY = 'auto';
+            textarea.style.resize = 'none';
+            
+            // Auto-grow function
+            function autoGrow() {
+                textarea.style.height = 'auto';
+                const newHeight = Math.min(textarea.scrollHeight, 200);
+                textarea.style.height = newHeight + 'px';
+            }
+            
+            // Add event listeners
+            textarea.addEventListener('input', autoGrow);
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    // Let Streamlit handle Enter key
+                    return;
+                }
+                autoGrow();
+            });
+            
+            // Initial sizing
+            autoGrow();
+        }
+        
+        // Run auto-grow setup
+        setupAutoGrow();
+        setTimeout(setupAutoGrow, 100);
+        setTimeout(setupAutoGrow, 500);
+        setTimeout(setupAutoGrow, 1000);
+        
+        // Also observe for new chat inputs
+        const inputObserver = new MutationObserver(setupAutoGrow);
+        inputObserver.observe(document.body, { childList: true, subtree: true });
     })();
     </script>
     """, unsafe_allow_html=True)
