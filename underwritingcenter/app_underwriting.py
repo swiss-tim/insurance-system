@@ -327,14 +327,34 @@ def show_loading(message, duration=2):
     st.rerun()
 
 def get_status_badge(status):
-    """Return formatted status badge HTML"""
-    status_lower = status.lower().replace(' ', '-')
-    return f'<span class="status-badge status-{status_lower}">{status}</span>'
+    """Return formatted status badge with emoji"""
+    status_upper = status.upper()
+    if status_upper == 'TRIAGED':
+        return '🔴 Triaged'
+    elif status_upper == 'IN REVIEW':
+        return '🟠 In Review'
+    elif status_upper == 'QUOTED':
+        return '🔵 Quoted'
+    elif status_upper == 'BOUND':
+        return '🟢 Bound'
+    elif status_upper == 'CLEARED':
+        return '⚪ Cleared'
+    elif status_upper == 'DECLINED':
+        return '⚫ Declined'
+    else:
+        return status
 
 def get_appetite_badge(appetite):
-    """Return formatted appetite badge HTML"""
-    appetite_lower = appetite.lower()
-    return f'<span class="status-badge appetite-{appetite_lower}">{appetite}</span>'
+    """Return formatted appetite badge with emoji"""
+    appetite_upper = appetite.upper()
+    if appetite_upper == 'HIGH':
+        return '🟢 High'
+    elif appetite_upper == 'MEDIUM':
+        return '🟡 Medium'
+    elif appetite_upper == 'LOW':
+        return '🔴 Low'
+    else:
+        return appetite
 
 # === DATABASE FUNCTIONS ===
 
@@ -350,6 +370,7 @@ def get_all_submissions():
         Submission.risk_appetite,
         Submission.broker_tier,
         Submission.effective_date,
+        Submission.accepted,
         Party.name.label('account_name')
     ).all()
     
@@ -372,7 +393,8 @@ def get_all_submissions():
             'effective_date': sub.effective_date,
             'priority_score': sub.priority_score,
             'completeness': sub.completeness,
-            'risk_appetite': sub.risk_appetite or ''
+            'risk_appetite': sub.risk_appetite or '',
+            'accepted': sub.accepted if hasattr(sub, 'accepted') else False
         })
     
     session.close()
@@ -414,6 +436,23 @@ def update_submission_status(submission_id, status, completeness=None):
         session.rollback()
         session.close()
         st.error(f"Error updating submission: {e}")
+        return False
+    return False
+
+def update_submission_accepted(submission_id, accepted=True):
+    """Update submission accepted field in database"""
+    session = get_session()
+    try:
+        submission = session.query(Submission).get(submission_id)
+        if submission:
+            submission.accepted = accepted
+            session.commit()
+            session.close()
+            return True
+    except Exception as e:
+        session.rollback()
+        session.close()
+        st.error(f"Error updating submission accepted: {e}")
         return False
     return False
 
@@ -684,13 +723,14 @@ def render_dashboard():
     
     with tab1:
         active_subs = [s for s in all_submissions if s['status'].upper() not in ['BOUND', 'DECLINED']]
-        quoted_subs = [s for s in active_subs if s['status'].upper() == 'QUOTED']
-        in_progress_subs = [s for s in active_subs if s['status'].upper() != 'QUOTED']
+        # Only show quoted submissions that have been accepted (quote sent to broker)
+        quoted_subs = [s for s in active_subs if s['status'].upper() == 'QUOTED' and s.get('accepted', False)]
+        in_progress_subs = [s for s in active_subs if s['status'].upper() != 'QUOTED' or not s.get('accepted', False)]
         
         if active_subs:
             st.caption(f"Showing {len(active_subs)} active submission(s)")
             
-            # Show bind option for quoted submissions first
+            # Show bind option for accepted quoted submissions first
             if quoted_subs:
                 st.markdown("**📋 Ready to Bind:**")
                 for sub in quoted_subs:
@@ -725,19 +765,48 @@ def render_dashboard():
             # Show in-progress submissions
             if in_progress_subs:
                 st.markdown("**🔄 In Progress:**")
+                
                 # Create DataFrame for display
                 df_display = []
                 for sub in in_progress_subs:
+                    # Create status badge with emoji
+                    status_upper = sub['status'].upper()
+                    if status_upper == 'TRIAGED':
+                        status_display = '🔴 Triaged'
+                    elif status_upper == 'IN REVIEW':
+                        status_display = '🟠 In Review'
+                    elif status_upper == 'QUOTED':
+                        status_display = '🔵 Quoted'
+                    elif status_upper == 'BOUND':
+                        status_display = '🟢 Bound'
+                    elif status_upper == 'CLEARED':
+                        status_display = '⚪ Cleared'
+                    elif status_upper == 'DECLINED':
+                        status_display = '⚫ Declined'
+                    else:
+                        status_display = sub['status']
+                    
+                    # Create appetite badge with emoji
+                    appetite_upper = sub['risk_appetite'].upper()
+                    if appetite_upper == 'HIGH':
+                        appetite_display = '🟢 High'
+                    elif appetite_upper == 'MEDIUM':
+                        appetite_display = '🟡 Medium'
+                    elif appetite_upper == 'LOW':
+                        appetite_display = '🔴 Low'
+                    else:
+                        appetite_display = sub['risk_appetite']
+                    
                     df_display.append({
                         'Account': sub['account_name'],
                         'Submission': sub['submission_number'],
-                        'Status': sub['status'],
+                        'Status': status_display,
                         'Broker': sub['broker'],
                         'Broker Tier': sub['broker_tier'],
                         'Effective Date': sub['effective_date'].strftime('%Y-%m-%d') if sub['effective_date'] else 'N/A',
                         'Priority Score': f"{sub['priority_score']:.1f}" if sub['priority_score'] else 'N/A',
                         'Completeness': f"{sub['completeness']}%" if sub['completeness'] else 'N/A',
-                        'Appetite': sub['risk_appetite']
+                        'Appetite': appetite_display
                     })
                 
                 df = pd.DataFrame(df_display)
@@ -784,6 +853,7 @@ def render_dashboard():
                         }
                     
                     st.rerun()
+                
         else:
             st.info("No active submissions found.")
     
@@ -921,7 +991,7 @@ def render_submission_detail():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Status</div>
-            <div style="margin: 1rem 0;">{get_status_badge(state['status'])}</div>
+            <div style="margin: 1rem 0; font-size: 1.5rem; font-weight: 600;">{get_status_badge(state['status'])}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -929,7 +999,7 @@ def render_submission_detail():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-title">Risk Appetite</div>
-            <div style="margin: 1rem 0;">{get_appetite_badge(state['risk_appetite'])}</div>
+            <div style="margin: 1rem 0; font-size: 1.5rem; font-weight: 600;">{get_appetite_badge(state['risk_appetite'])}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1106,11 +1176,15 @@ def render_submission_detail():
                         st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
                         time.sleep(3)
                         
-                        # Update status to Quoted
+                        # Update status to Quoted and mark as accepted (ready to bind)
                         st.session_state.submission_state['status'] = 'Quoted'
                         update_submission_status(
                             st.session_state.selected_submission,
                             'Quoted'
+                        )
+                        update_submission_accepted(
+                            st.session_state.selected_submission,
+                            True
                         )
                         
                         st.session_state.show_loading = False
@@ -1262,10 +1336,14 @@ def render_submission_detail():
                         # Update session state
                         st.session_state.submission_state['status'] = 'Quoted'
                         
-                        # Save to database
+                        # Save to database and mark as accepted (ready to bind)
                         update_submission_status(
                             st.session_state.selected_submission,
                             'Quoted'
+                        )
+                        update_submission_accepted(
+                            st.session_state.selected_submission,
+                            True
                         )
                         
                         st.session_state.show_loading = False

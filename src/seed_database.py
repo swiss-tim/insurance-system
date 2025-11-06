@@ -51,6 +51,7 @@ class Submission(Base):
     priority_score = Column(Float)  # e.g., 4.8
     risk_appetite = Column(String)  # High, Medium, Low
     broker_tier = Column(String)  # Tier 1, Tier 2, Tier 3
+    accepted = Column(Boolean, default=False)  # True when quote sent to broker
     
     quotes = relationship("Quote", back_populates="submission")
 
@@ -761,6 +762,7 @@ Email: maria.weber@example.com""",
             priority_score=4.8,
             risk_appetite='High',
             broker_tier='Tier 1',
+            accepted=False,  # Will be set to True when quote sent to broker
             created_at=datetime.datetime(2025, 10, 15, 9, 30)
         )
         session.add(submission_floor_decor)
@@ -841,6 +843,7 @@ Email: maria.weber@example.com""",
             priority_score=4.6,
             risk_appetite='High',
             broker_tier='Tier 3',
+            accepted=False,  # Quote not yet sent to broker
             created_at=datetime.datetime(2025, 10, 5, 16, 30)
         )
         session.add(submission_construction)
@@ -893,19 +896,12 @@ if __name__ == '__main__':
     # When running as script, check if database exists
     db_exists = os.path.exists(DB_FILE)
     
-    if db_exists:
-        print(f"Database {DB_FILE} already exists.")
-        # Try to clear existing data instead of deleting the file
-        # This allows the script to work even if the database is in use
-        Base.metadata.create_all(engine)  # Ensure schema exists
-        if clear_all_data():
-            print("Ready to seed fresh data...")
-        else:
-            print("Warning: Could not clear all data. Will attempt to seed anyway...")
-    else:
-        print(f"Creating new database: {DB_FILE}")
-        # Create database schema
-        Base.metadata.create_all(engine)
+    # Always drop and recreate tables to ensure schema is up to date
+    # This is safe because we clear data anyway
+    print("Creating/updating database schema...")
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    print("[OK] Schema ready")
     
     # Seed data (session is created inside seed_data())
     seed_data()
