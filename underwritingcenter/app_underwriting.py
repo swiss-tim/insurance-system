@@ -763,69 +763,62 @@ def render_dashboard():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # FINAL ATTEMPT: Don't hide header content, just style it and overlay our content
+    # Style header and reduce spacing aggressively
     st.markdown(f"""
     <style>
-    /* Only change header background color - don't hide anything */
+    /* Style header background */
     header[data-testid="stHeader"] {{
         background-color: #3c5c6c !important;
         position: relative !important;
+        height: 3.5rem !important;
     }}
     
-    /* Overlay our content on top of Streamlit's header content */
+    /* DON'T hide Streamlit's header content - keep navigation buttons visible */
+    /* Just style the header container to show our content on the left */
+    header[data-testid="stHeader"] > div {{
+        background-color: transparent !important;
+    }}
+    
+    /* Aggressively reduce space between header and main content */
+    .main .block-container {{
+        padding-top: 0.5rem !important;
+        margin-top: -6rem !important;
+    }}
+    
+    /* Also reduce space in the first element */
+    .main .element-container:first-child {{
+        margin-top: -2rem !important;
+    }}
+    
+    /* Inject logo and text using CSS - positioned on the left, buttons stay on right */
     header[data-testid="stHeader"]::before {{
         content: '';
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        background-image: url('data:image/png;base64,{logo_base64}');
+        background-size: contain;
+        background-repeat: no-repeat;
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #3c5c6c;
-        z-index: 1;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
     }}
     
-    /* Put our content above the overlay */
-    .gw-header-overlay {{
+    header[data-testid="stHeader"]::after {{
+        content: 'Guidewire Underwriting Center';
+        color: white;
+        font-size: 1em;
+        font-weight: 400;
+        letter-spacing: 0.3px;
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        padding: 12px 20px;
-        z-index: 2;
-        pointer-events: none;
-    }}
-    
-    .gw-header-overlay * {{
-        pointer-events: auto;
+        left: 60px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
     }}
     </style>
-    <script>
-    (function() {{
-        function addHeaderOverlay() {{
-            const header = document.querySelector('header[data-testid="stHeader"]');
-            if (header && !header.querySelector('.gw-header-overlay')) {{
-                const overlay = document.createElement('div');
-                overlay.className = 'gw-header-overlay';
-                overlay.innerHTML = `
-                    <img src="data:image/png;base64,{logo_base64}" style="height:28px;margin-right:12px;" />
-                    <span style="color:white;font-size:1em;font-weight:400;letter-spacing:0.3px;">Guidewire Underwriting Center</span>
-                `;
-                header.style.position = 'relative';
-                header.appendChild(overlay);
-            }}
-        }}
-        if (document.readyState === 'loading') {{
-            document.addEventListener('DOMContentLoaded', addHeaderOverlay);
-        }} else {{
-            addHeaderOverlay();
-        }}
-        setTimeout(addHeaderOverlay, 100);
-        setTimeout(addHeaderOverlay, 500);
-    }})();
-    </script>
     """, unsafe_allow_html=True)
     
     st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
