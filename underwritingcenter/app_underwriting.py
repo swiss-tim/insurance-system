@@ -779,15 +779,47 @@ def render_dashboard():
         background-color: transparent !important;
     }}
     
-    /* Aggressively reduce space between header and main content */
-    .main .block-container {{
-        padding-top: 0.5rem !important;
-        margin-top: -6rem !important;
+    /* Reduce space between header and main content - BOTH margin AND transform */
+    [data-testid="stAppViewContainer"] {{
+        padding-top: 0 !important;
     }}
     
-    /* Also reduce space in the first element */
+    [data-testid="stAppViewContainer"] > .main {{
+        padding-top: 0 !important;
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+    }}
+    
+    .main .block-container {{
+        padding-top: 0 !important;
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+    }}
+    
+    /* Target the first element container with both margin and transform */
     .main .element-container:first-child {{
-        margin-top: -2rem !important;
+        margin-top: -10px !important;
+        padding-top: 0 !important;
+        transform: translateY(-10px) !important;
+    }}
+    
+    /* Also target any markdown elements that might add space */
+    .main .element-container:first-child .stMarkdown {{
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }}
+    
+    /* Target appviewblock */
+    [data-testid="stAppViewBlockContainer"] {{
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+        padding-top: 0 !important;
+    }}
+    
+    /* Try targeting the space directly after header */
+    header[data-testid="stHeader"] ~ * {{
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
     }}
     
     /* Inject logo and text using CSS - positioned on the left, buttons stay on right */
@@ -821,7 +853,7 @@ def render_dashboard():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 style="margin-top: 0; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
     
     # Detect market from first submission in database (German or US)
     all_submissions = get_all_submissions()
@@ -1273,8 +1305,95 @@ def render_submission_detail():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Detail page: NO header styling - let Streamlit's default header and sidebar work normally
-    # Just render the sidebar - that's it!
+    # Apply same header styling as dashboard page
+    st.markdown(f"""
+    <style>
+    /* Style header background */
+    header[data-testid="stHeader"] {{
+        background-color: #3c5c6c !important;
+        position: relative !important;
+        height: 3.5rem !important;
+    }}
+    
+    /* DON'T hide Streamlit's header content - keep navigation buttons visible */
+    /* Just style the header container to show our content on the left */
+    header[data-testid="stHeader"] > div {{
+        background-color: transparent !important;
+    }}
+    
+    /* Reduce space between header and main content - BOTH margin AND transform */
+    [data-testid="stAppViewContainer"] {{
+        padding-top: 0 !important;
+    }}
+    
+    [data-testid="stAppViewContainer"] > .main {{
+        padding-top: 0 !important;
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+    }}
+    
+    .main .block-container {{
+        padding-top: 0 !important;
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+    }}
+    
+    /* Target the first element container with both margin and transform */
+    .main .element-container:first-child {{
+        margin-top: -10px !important;
+        padding-top: 0 !important;
+        transform: translateY(-10px) !important;
+    }}
+    
+    /* Also target any markdown elements that might add space */
+    .main .element-container:first-child .stMarkdown {{
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }}
+    
+    /* Target appviewblock */
+    [data-testid="stAppViewBlockContainer"] {{
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+        padding-top: 0 !important;
+    }}
+    
+    /* Try targeting the space directly after header */
+    header[data-testid="stHeader"] ~ * {{
+        margin-top: -60px !important;
+        transform: translateY(-60px) !important;
+    }}
+    
+    /* Inject logo and text using CSS - positioned on the left, buttons stay on right */
+    header[data-testid="stHeader"]::before {{
+        content: '';
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        background-image: url('data:image/png;base64,{logo_base64}');
+        background-size: contain;
+        background-repeat: no-repeat;
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+    }}
+    
+    header[data-testid="stHeader"]::after {{
+        content: 'Guidewire Underwriting Center';
+        color: white;
+        font-size: 1em;
+        font-weight: 400;
+        letter-spacing: 0.3px;
+        position: absolute;
+        left: 60px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.selected_submission:
         st.error("No submission selected")
