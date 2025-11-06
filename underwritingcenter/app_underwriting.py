@@ -222,7 +222,7 @@ st.markdown("""
 # Initialize database on first run or if missing
 @st.cache_resource
 def initialize_database():
-    """Initialize the database with demo data"""
+    """Initialize the database with German SHUK demo data (default)"""
     try:
         # Add src to path if not already there
         src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -232,7 +232,8 @@ def initialize_database():
         # Import necessary modules
         from sqlalchemy import create_engine
         from sqlalchemy.orm import Session
-        from seed_database import Base, seed_data, Party
+        from seed_database import Base, Party
+        from seed_data_german import seed_german_data
         
         # Create database and tables
         db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pnc_demo.db'))
@@ -244,12 +245,12 @@ def initialize_database():
         # Check if database is already populated
         session = Session(engine)
         party_count = session.query(Party).count()
-        session.close()
         
         if party_count == 0:
-            # Database is empty, seed it
-            seed_data()
+            # Database is empty, seed it with German market data (default)
+            seed_german_data(session)
         
+        session.close()
         return True
     except Exception as e:
         st.error(f"❌ Failed to initialize database: {str(e)}")
@@ -456,8 +457,8 @@ def update_submission_accepted(submission_id, accepted=True):
         return False
     return False
 
-def reset_demo_database():
-    """Reset the database to demo state by running seed script"""
+def reset_demo_database(market='german'):
+    """Reset the database to demo state by running seed script with market selection"""
     import subprocess
     import sys
     
@@ -466,17 +467,17 @@ def reset_demo_database():
     project_root = os.path.dirname(current_dir)
     seed_script = os.path.join(project_root, "src", "seed_database.py")
     
-    # Run seed script - it will clear existing data and re-seed
-    # No need to delete the database file anymore
+    # Run seed script with market parameter
     result = subprocess.run(
-        [sys.executable, seed_script],
+        [sys.executable, seed_script, market],
         capture_output=True,
         text=True,
         cwd=project_root
     )
     
     if result.returncode == 0:
-        return True, "Database reset successfully! ✨"
+        market_name = "German SHUK" if market == 'german' else "U.S. Workers' Compensation"
+        return True, f"Database reset successfully with {market_name} data! ✨"
     else:
         return False, result.stderr
 
@@ -905,9 +906,21 @@ def render_dashboard():
             st.rerun()
     
     with col_refresh3:
-        if st.button("🔄 Reset Demo Data", type="secondary", use_container_width=True, help="Reset all submissions to original demo state"):
-            with st.spinner("Resetting demo data..."):
-                success, message = reset_demo_database()
+        # Market selection dropdown
+        market_option = st.selectbox(
+            "Market",
+            options=["German SHUK", "U.S. Workers' Compensation"],
+            index=0,  # German SHUK is default/preselected
+            key="market_selection",
+            help="Select the market for demo data"
+        )
+        
+        # Map display name to internal value
+        market_value = 'german' if market_option == "German SHUK" else 'us'
+        
+        if st.button("🔄 Reset Demo Data", type="secondary", use_container_width=True, help="Reset all submissions to selected market demo state"):
+            with st.spinner(f"Resetting demo data with {market_option}..."):
+                success, message = reset_demo_database(market=market_value)
                 
                 if success:
                     # Clear session state
