@@ -27,6 +27,107 @@ from database_queries import get_session
 from seed_database import Submission, Party, Quote
 from market_config import detect_market, get_market_content, format_currency
 
+# === HELPER FUNCTIONS FOR LOADING MODAL ===
+
+@st.cache_data  # Cache the file conversion
+def get_gif_as_base64(file_path):
+    """Reads a GIF file and returns it as a Base64 encoded string."""
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception as e:
+        st.error(f"Error reading GIF file: {e}")
+        return None
+
+def get_modal_html(gif_base64, text):
+    """
+    Generates the full HTML/CSS for the modal,
+    injecting the GIF and the current text.
+    """
+    return f"""
+    <style>
+        /* The Overlay (dimmed background) */
+        .overlay {{
+            position: fixed; /* Sit on top of the page content */
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7); /* Black background with opacity */
+            z-index: 9998; /* Specify a stack order */
+        }}
+
+        /* The Modal Box */
+        .modal-content {{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 320px; /* Set a fixed width */
+            text-align: center;
+            z-index: 9999; /* Even higher stack order */
+            color: #333; /* Text color for the modal */
+        }}
+
+        .modal-content img {{
+            width: 80px; /* Adjust GIF size as needed */
+            margin-bottom: 20px;
+        }}
+    </style>
+
+    <div class="overlay">
+        <div class="modal-content">
+            <img src="data:image/gif;base64,{gif_base64}" alt="loading...">
+            <p>{text}</p>
+        </div>
+    </div>
+    """
+
+def show_loading_modal(steps, duration_per_step=1.5):
+    """
+    Display a loading modal with animated GIF and changing text messages.
+    
+    Args:
+        steps: List of text messages to display sequentially
+        duration_per_step: Duration (in seconds) to display each step
+    
+    Returns:
+        The placeholder object (for potential cleanup)
+    """
+    # Get the GIF as base64
+    gif_path = os.path.join(os.path.dirname(__file__), 'logo-moving.gif')
+    gif_base64 = get_gif_as_base64(gif_path)
+    
+    if not gif_base64:
+        return None
+    
+    # Create a placeholder for the modal
+    loading_placeholder = st.empty()
+    
+    try:
+        # Loop through each step
+        for text in steps:
+            # Generate the HTML with the current text
+            modal_html = get_modal_html(gif_base64, text)
+            
+            # Update the placeholder's content
+            loading_placeholder.markdown(modal_html, unsafe_allow_html=True)
+            
+            # Wait before next step
+            time.sleep(duration_per_step)
+    
+    finally:
+        # Clear the placeholder (removes the modal)
+        loading_placeholder.empty()
+    
+    return loading_placeholder
+
 # === PAGE CONFIG ===
 st.set_page_config(
     page_title="Guidewire Underwriting Center",
@@ -774,22 +875,28 @@ def render_dashboard():
                         st.markdown(f"**{sub['account_name']}**  \n{sub['submission_number']} - *Quoted*")
                     with col_btn:
                         if st.button("✅ Bind", key=f"bind_active_{sub['id']}", use_container_width=True):
-                            with st.spinner("Binding policy..."):
-                                time.sleep(2)
-                                update_submission_status(sub['id'], 'BOUND')
-                                
-                                # Update dashboard KPIs
-                                st.session_state.dashboard_kpis['turnaround_time'] = 3.9
-                                st.session_state.dashboard_kpis['hit_ratio'] = 37
-                                st.session_state.dashboard_kpis['earned_premium'] = 1.85
-                                
-                                # Update chart data
-                                st.session_state.chart_data['hit_ratio_q4'] = 37
-                                st.session_state.chart_data['premium_q4'] = 1.85
-                                
-                                st.success(f"✅ Policy bound for {sub['account_name']}! Metrics updated.")
-                                time.sleep(1)
-                                st.rerun()
+                            import random
+                            policy_number = random.randint(2800000000, 2899999999)
+                            
+                            show_loading_modal([
+                                "Sending data to PolicyCenter for Binding",
+                                f"Policy Bound: {policy_number}"
+                            ])
+                            
+                            update_submission_status(sub['id'], 'BOUND')
+                            
+                            # Update dashboard KPIs
+                            st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                            st.session_state.dashboard_kpis['hit_ratio'] = 37
+                            st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                            
+                            # Update chart data
+                            st.session_state.chart_data['hit_ratio_q4'] = 37
+                            st.session_state.chart_data['premium_q4'] = 1.85
+                            
+                            st.success(f"✅ Policy bound for {sub['account_name']}! Metrics updated.")
+                            time.sleep(1)
+                            st.rerun()
                 st.markdown("---")
             
             # Show in-progress submissions
@@ -1079,11 +1186,11 @@ def render_submission_detail():
     with col2:
         if not state['is_summary_visible']:
             if st.button("✨ Summarize with AI", use_container_width=True):
-                st.session_state.show_loading = True
-                st.session_state.loading_message = "Analyzing Received Documentation..."
-                time.sleep(2)
+                show_loading_modal([
+                    "Understanding Documents",
+                    "Creating the Summary"
+                ])
                 st.session_state.submission_state['is_summary_visible'] = True
-                st.session_state.show_loading = False
                 st.rerun()
     
     # === AI SMART SUMMARY (Conditionally rendered) ===
@@ -1116,9 +1223,10 @@ def render_submission_detail():
         col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 2])
         with col_accept1:
             if st.button("✅ Accept Summary", use_container_width=True):
-                st.session_state.show_loading = True
-                st.session_state.loading_message = "Updating Completeness Score..."
-                time.sleep(2)
+                show_loading_modal([
+                    "Updating Completeness Score by 12 points",
+                    "Unlocking Proposal Creation"
+                ])
                 
                 # Update session state
                 st.session_state.submission_state['completeness'] = 86
@@ -1131,7 +1239,6 @@ def render_submission_detail():
                     completeness=86
                 )
                 
-                st.session_state.show_loading = False
                 st.success("✅ Summary accepted! Completeness updated.")
                 time.sleep(1)
                 st.rerun()
@@ -1147,12 +1254,13 @@ def render_submission_detail():
         col_gen1, col_gen2, col_gen3 = st.columns([1, 2, 1])
         with col_gen2:
             if st.button("+ Generate Proposal", use_container_width=True):
-                st.session_state.show_loading = True
-                st.session_state.loading_message = "Retrieving APD Product Details...\n\nCalculating Quote..."
-                time.sleep(3)
+                show_loading_modal([
+                    "Retrieving APD Product Details",
+                    "Calculating Quote with PricingCenter",
+                    "Finalizing Proposal & Quote"
+                ])
                 st.session_state.submission_state['is_proposal_visible'] = True
                 st.session_state.submission_state['quotes'] = ['base']
-                st.session_state.show_loading = False
                 st.rerun()
     
     # === PROPOSAL DETAILS (Conditionally rendered) ===
@@ -1216,9 +1324,11 @@ def render_submission_detail():
             with col_analyze2:
                 if state['status'].upper() != 'QUOTED':
                     if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_base_quote"):
-                        st.session_state.show_loading = True
-                        st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
-                        time.sleep(3)
+                        show_loading_modal([
+                            "Creating Broker Quote page",
+                            "Sending Email",
+                            "Updating Proposal Status"
+                        ])
                         
                         # Update status to Quoted and mark as accepted (ready to bind)
                         st.session_state.submission_state['status'] = 'Quoted'
@@ -1231,37 +1341,8 @@ def render_submission_detail():
                             True
                         )
                         
-                        st.session_state.show_loading = False
                         st.success("✅ Quote sent to broker!")
                         time.sleep(1)
-                        st.rerun()
-                elif state['status'].upper() == 'QUOTED':
-                    if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="bind_base_quote"):
-                        st.session_state.show_loading = True
-                        st.session_state.loading_message = "Binding Policy..."
-                        time.sleep(2)
-                        
-                        st.session_state.submission_state['status'] = 'BOUND'
-                        update_submission_status(
-                            st.session_state.selected_submission,
-                            'BOUND'
-                        )
-                        
-                        # Update dashboard KPIs
-                        st.session_state.dashboard_kpis['turnaround_time'] = 3.9
-                        st.session_state.dashboard_kpis['hit_ratio'] = 37
-                        st.session_state.dashboard_kpis['earned_premium'] = 1.85
-                        
-                        # Update chart data
-                        st.session_state.chart_data['hit_ratio_q4'] = 37
-                        st.session_state.chart_data['premium_q4'] = 16.5
-                        
-                        st.session_state.show_loading = False
-                        st.success("✅ Policy bound successfully! Dashboard metrics updated.")
-                        time.sleep(2)
-                        
-                        # Return to dashboard to show updated metrics
-                        st.session_state.current_screen = 'dashboard'
                         st.rerun()
         
         # === AI RECOMMENDATIONS (Conditionally rendered) ===
@@ -1283,9 +1364,9 @@ def render_submission_detail():
             col_rec1, col_rec2, col_rec3 = st.columns([1, 1, 2])
             with col_rec1:
                 if st.button("✅ Accept Recommendation", use_container_width=True):
-                    st.session_state.show_loading = True
-                    st.session_state.loading_message = market_content['ai_recommendations']['loading_message']
-                    time.sleep(2)
+                    show_loading_modal([
+                        "Adding Endorsements / Coverages"
+                    ])
                     
                     # Update endorsements based on recommendations
                     for rec in recs['items']:
@@ -1297,7 +1378,6 @@ def render_submission_detail():
                     import random
                     st.session_state.submission_state['widget_key_suffix'] = str(random.randint(1000, 9999))
                     
-                    st.session_state.show_loading = False
                     st.success("✅ Endorsements added!")
                     time.sleep(1)
                     st.rerun()
@@ -1320,11 +1400,12 @@ def render_submission_detail():
             col_genq1, col_genq2, col_genq3 = st.columns([1, 2, 1])
             with col_genq2:
                 if st.button("🔄 Generate Quote", use_container_width=True):
-                    st.session_state.show_loading = True
-                    st.session_state.loading_message = "Analyzing Changes...\n\nCalculating Quote..."
-                    time.sleep(3)
+                    show_loading_modal([
+                        "Analyzing Changes",
+                        "Calculating Quote with PricingCenter",
+                        "Finalizing Quote"
+                    ])
                     st.session_state.submission_state['quotes'].append('generated')
-                    st.session_state.show_loading = False
                     st.rerun()
         
         # === GENERATED QUOTE CARD ===
@@ -1391,9 +1472,11 @@ def render_submission_detail():
             with col_compare2:
                 if state['status'].upper() != 'QUOTED':
                     if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_generated_quote"):
-                        st.session_state.show_loading = True
-                        st.session_state.loading_message = "Creating Broker Quote Page...\n\nSending Email..."
-                        time.sleep(3)
+                        show_loading_modal([
+                            "Creating Broker Quote page",
+                            "Sending Email",
+                            "Updating Proposal Status"
+                        ])
                         
                         # Update session state
                         st.session_state.submission_state['status'] = 'Quoted'
@@ -1408,45 +1491,9 @@ def render_submission_detail():
                             True
                         )
                         
-                        st.session_state.show_loading = False
                         st.success("✅ Quote sent to broker successfully!")
                         time.sleep(2)
                         st.rerun()
-                elif state['status'].upper() == 'QUOTED':
-                    # Show Bind Policy button after quote is sent
-                    if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="bind_policy_detail"):
-                        st.session_state.show_loading = True
-                        st.session_state.loading_message = "Binding Policy..."
-                        time.sleep(2)
-                        
-                        # Update session state
-                        st.session_state.submission_state['status'] = 'BOUND'
-                        
-                        # Save to database
-                        update_submission_status(
-                            st.session_state.selected_submission,
-                            'BOUND'
-                        )
-                        
-                        # Update dashboard KPIs
-                        st.session_state.dashboard_kpis['turnaround_time'] = 3.9
-                        st.session_state.dashboard_kpis['hit_ratio'] = 37
-                        st.session_state.dashboard_kpis['earned_premium'] = 1.85
-                        
-                        # Update chart data
-                        st.session_state.chart_data['hit_ratio_q4'] = 37
-                        st.session_state.chart_data['premium_q4'] = 16.5
-                        
-                        st.session_state.show_loading = False
-                        st.success("✅ Policy bound successfully! Dashboard metrics updated.")
-                        time.sleep(2)
-                        
-                        # Return to dashboard to show updated metrics
-                        st.session_state.current_screen = 'dashboard'
-                        st.rerun()
-                else:
-                    # Already bound
-                    st.info("✅ This policy has been bound and moved to the Bound tab.")
         
         # === QUOTE COMPARISON VIEW ===
         if state['is_comparison_visible']:
