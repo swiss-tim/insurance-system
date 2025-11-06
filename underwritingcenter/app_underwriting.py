@@ -133,7 +133,7 @@ st.set_page_config(
     page_title="Guidewire Underwriting Center",
     page_icon="🏢",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # === CUSTOM CSS ===
@@ -415,6 +415,12 @@ if 'show_loading' not in st.session_state:
     st.session_state.show_loading = False
     st.session_state.loading_message = ""
 
+# Chatbot state
+if 'chat_messages' not in st.session_state:
+    st.session_state.chat_messages = []
+if 'show_welcome' not in st.session_state:
+    st.session_state.show_welcome = True
+
 # === HELPER FUNCTIONS ===
 
 def show_loading(message, duration=2):
@@ -593,8 +599,162 @@ def render_loading_modal():
         </div>
         """, unsafe_allow_html=True)
 
+def stream_text(text, delay=0.02):
+    """Stream text character by character for a more dynamic feel"""
+    placeholder = st.empty()
+    displayed_text = ""
+    for char in text:
+        displayed_text += char
+        placeholder.markdown(displayed_text)
+        time.sleep(delay)
+    return placeholder
+
+def render_chatbot_sidebar():
+    """Render the AI underwriting assistant chatbot in the sidebar"""
+    with st.sidebar:
+        st.markdown("### 🤖 Underwriting Assistant")
+        st.caption(f"*{time.strftime('%I:%M %p')}*")
+        
+        # Welcome message (show once)
+        if st.session_state.show_welcome:
+            st.markdown("---")
+            st.markdown("**Welcome back, Alice! Here's what happened since your last login:**")
+            st.markdown("""
+            • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
+            
+            • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
+            
+            • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
+            
+            • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
+            """)
+            
+            st.markdown("**Some things you could commonly ask for:**")
+            st.markdown("""
+            • Catch me up
+            • Create an action list
+            • Show me high-priority items
+            """)
+            
+        # Chat history
+        st.markdown("---")
+        for msg in st.session_state.chat_messages:
+            if msg['role'] == 'user':
+                st.markdown(f"**You:** {msg['content']}")
+            else:
+                st.markdown(f"**Assistant:** {msg['content']}")
+            st.markdown("")
+        
+        # Chat input
+        user_input = st.chat_input("Type your message...")
+        
+        if user_input:
+            # Add user message
+            st.session_state.chat_messages.append({'role': 'user', 'content': user_input})
+            
+            # Generate AI response based on input
+            response = generate_ai_response(user_input)
+            st.session_state.chat_messages.append({'role': 'assistant', 'content': response})
+            st.session_state.show_welcome = False
+            st.rerun()
+        
+        # Clear chat button
+        if len(st.session_state.chat_messages) > 0:
+            if st.button("🗑️ Clear Chat", use_container_width=True):
+                st.session_state.chat_messages = []
+                st.session_state.show_welcome = True
+                st.rerun()
+
+def generate_ai_response(user_input):
+    """Generate contextual AI responses based on user input"""
+    user_input_lower = user_input.lower()
+    
+    # Contextual responses
+    if 'catch' in user_input_lower or 'update' in user_input_lower or 'summary' in user_input_lower:
+        return """Here's your quick update:
+
+**Today's Activity:**
+• 3 new submissions received (2 High appetite, 1 Medium)
+• Floor & Decor ready for underwriter review
+• Monrovia Metalworking awaiting additional documents
+
+**Action Items:**
+• Review Floor & Decor submission (Priority Score: 4.8)
+• Follow up with broker on Restaurant Holdings documents
+• 2 quotes pending your approval
+
+Would you like me to open any of these submissions?"""
+    
+    elif 'action' in user_input_lower or 'priority' in user_input_lower or 'todo' in user_input_lower:
+        return """**Your Priority Action List:**
+
+1. ⚡ **URGENT:** Floor & Decor (SUB-2026-001)
+   - Priority Score: 4.8 | Completeness: 74%
+   - Action: Review and generate quote
+
+2. 🔔 **HIGH:** Monrovia Metalworking (SUB-2026-003)
+   - Priority Score: 4.7 | Completeness: 80%
+   - Action: Document review needed
+
+3. 📋 **MEDIUM:** Construction Dynamics (SUB-2026-007)
+   - Ready to bind
+   - Action: Send quote to broker
+
+Shall I help you with Floor & Decor first?"""
+    
+    elif 'help' in user_input_lower or 'what can' in user_input_lower:
+        return """I can help you with:
+
+**Submission Management:**
+• Get updates on active submissions
+• Create prioritized action lists
+• Check submission status
+
+**Analytics & Insights:**
+• Review KPI trends
+• Analyze broker performance
+• Identify appetite alignment issues
+
+**Quick Actions:**
+• Open specific submissions
+• Generate quotes
+• Send reminders to brokers
+
+Just ask me anything!"""
+    
+    elif 'floor' in user_input_lower or '2026-001' in user_input_lower:
+        return """**Floor & Decor Outlets (SUB-2026-001):**
+
+📊 **Status:** Triaged (74% complete)
+🎯 **Priority:** 4.8/5.0 (High)
+💰 **Estimated Premium:** $1.8M
+📅 **Effective Date:** Oct 29, 2025
+
+**Next Steps:**
+1. Review loss runs (already uploaded)
+2. Generate APD quote
+3. AI analysis for endorsements
+
+This is a Tier 1 broker submission with strong appetite alignment. Would you like me to open this submission for review?"""
+    
+    else:
+        # Generic helpful response
+        return f"""I understand you're asking about "{user_input}". 
+
+I can help you with submission reviews, priority actions, KPI insights, and workflow management. 
+
+Try asking:
+• "What needs my attention?"
+• "Show me high-priority submissions"
+• "Give me a summary of today's activity"
+
+How can I assist you?"""
+
 def render_dashboard():
     """Render the main dashboard screen"""
+    # Render chatbot sidebar
+    render_chatbot_sidebar()
+    
     # Load and encode logo
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
     logo_base64 = ""
@@ -1072,6 +1232,9 @@ def render_dashboard():
 
 def render_submission_detail():
     """Render the detailed submission view"""
+    # Render chatbot sidebar
+    render_chatbot_sidebar()
+    
     # Add sticky header
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
     logo_base64 = ""
