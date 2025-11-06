@@ -605,6 +605,9 @@ def render_dashboard():
             'Hit Ratio %': [19, 24, 35, st.session_state.chart_data['hit_ratio_q4']]
         })
         
+        # Add formatted labels with % sign
+        hit_ratio_data['Label'] = hit_ratio_data['Hit Ratio %'].apply(lambda x: f'{int(x)}%')
+        
         # Bar chart
         chart = alt.Chart(hit_ratio_data).mark_bar(color='#14b8a6', size=50).encode(
             x=alt.X('Quarter:N', axis=alt.Axis(title=None, labelAngle=0)),
@@ -624,12 +627,12 @@ def render_dashboard():
             fontSize=13,
             fontWeight='bold'
         ).encode(
-            text=alt.Text('Hit Ratio %:Q', format='.0f')
+            text='Label:N'
         )
         
         # Add "good" threshold line
         threshold_line = alt.Chart(pd.DataFrame({'y': [26]})).mark_rule(
-            color='#65a30d',
+            color='white',
             strokeWidth=2,
             strokeDash=[5, 5]
         ).encode(
@@ -645,7 +648,7 @@ def render_dashboard():
             align='left',
             dx=10,
             dy=-5,
-            color='#65a30d',
+            color='white',
             fontSize=11,
             fontWeight='bold'
         ).encode(
@@ -710,6 +713,9 @@ def render_dashboard():
             'Loss Ratio %': [49, 51, 52, 49]
         })
         
+        # Add formatted labels with % sign
+        loss_ratio_data['Label'] = loss_ratio_data['Loss Ratio %'].apply(lambda x: f'{int(x)}%')
+        
         # Line chart
         line = alt.Chart(loss_ratio_data).mark_line(
             color='#0891b2',
@@ -733,7 +739,7 @@ def render_dashboard():
             fontSize=12,
             fontWeight='bold'
         ).encode(
-            text=alt.Text('Loss Ratio %:Q', format='.0f')
+            text='Label:N'
         )
         
         st.altair_chart(line + text, use_container_width=True)
