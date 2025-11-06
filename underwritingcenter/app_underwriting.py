@@ -610,8 +610,99 @@ def stream_text(text, delay=0.02):
         time.sleep(delay)
     return placeholder
 
+def render_floating_chat():
+    """Render ChatGPT-style floating chat window using st.popover"""
+    # Initialize chat state if not exists
+    if 'chat_messages' not in st.session_state:
+        st.session_state.chat_messages = []
+    if 'show_welcome' not in st.session_state:
+        st.session_state.show_welcome = True
+    
+    # Add CSS for floating chat button
+    st.markdown("""
+    <style>
+    /* Position chat popover button in top right */
+    div[data-testid="stPopover"]:has(button:contains("💬")) {
+        position: fixed !important;
+        top: 80px !important;
+        right: 20px !important;
+        z-index: 1000 !important;
+    }
+    
+    /* Style the popover content */
+    div[data-testid="stPopoverContent"] {
+        width: 400px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Floating chat window using popover (button is part of popover)
+    with st.popover("💬 Chat", use_container_width=False):
+        # Chat header
+        st.markdown("### 🤖 Underwriting Assistant")
+        st.caption(f"*{time.strftime('%I:%M %p')}*")
+        st.markdown("---")
+        
+        # Scrollable chat history container
+        chat_container = st.container(height=400)
+        with chat_container:
+            # Welcome message (show once)
+            if st.session_state.show_welcome:
+                st.markdown("**Welcome back, Alice! Here's what happened since your last login:**")
+                st.markdown("""
+                • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
+                
+                • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
+                
+                • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
+                
+                • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
+                """)
+                
+                st.markdown("**Some things you could commonly ask for:**")
+                st.markdown("""
+                • Catch me up
+                • Create an action list
+                • Show me high-priority items
+                • Open submission [number]
+                """)
+            
+            # Chat history using st.chat_message
+            for msg in st.session_state.chat_messages:
+                if msg['role'] == 'user':
+                    with st.chat_message("user"):
+                        st.markdown(msg['content'])
+                else:
+                    with st.chat_message("assistant"):
+                        st.markdown(msg['content'])
+        
+        # Chat input (outside scrollable container - always visible at bottom)
+        user_input = st.chat_input("Type your message...")
+        
+        if user_input:
+            # Add user message
+            st.session_state.chat_messages.append({'role': 'user', 'content': user_input})
+            
+            # Generate AI response and check for navigation triggers
+            response, navigation_action = generate_ai_response_with_navigation(user_input)
+            st.session_state.chat_messages.append({'role': 'assistant', 'content': response})
+            st.session_state.show_welcome = False
+            
+            # Handle navigation if triggered
+            if navigation_action:
+                handle_chat_navigation(navigation_action)
+            
+            st.rerun()
+        
+        # Clear chat button
+        if len(st.session_state.chat_messages) > 0:
+            if st.button("🗑️ Clear Chat", use_container_width=True, key="clear_chat_floating"):
+                st.session_state.chat_messages = []
+                st.session_state.show_welcome = True
+                st.rerun()
+
 def render_chatbot_sidebar():
-    """Render the AI underwriting assistant chatbot in the sidebar"""
+    """Render the AI underwriting assistant chatbot in the sidebar (BACKUP - kept for reference)"""
     with st.sidebar:
         st.markdown("### 🤖 Underwriting Assistant")
         st.caption(f"*{time.strftime('%I:%M %p')}*")
@@ -751,10 +842,72 @@ Try asking:
 
 How can I assist you?"""
 
+def generate_ai_response_with_navigation(user_input):
+    """Generate AI response and detect navigation triggers"""
+    user_input_lower = user_input.lower()
+    navigation_action = None
+    
+    # Check for submission number patterns (e.g., "SUB-2026-001", "2026-001", "open submission 001")
+    import re
+    submission_match = re.search(r'sub-?(\d{4})-?(\d{3})', user_input_lower) or \
+                      re.search(r'(\d{4})-(\d{3})', user_input_lower) or \
+                      re.search(r'submission\s+(\d{3})', user_input_lower) or \
+                      re.search(r'open\s+(\d{3})', user_input_lower)
+    
+    if submission_match:
+        # Extract submission number
+        if len(submission_match.groups()) == 2:
+            year, num = submission_match.groups()
+            submission_number = f"SUB-{year}-{num}"
+        else:
+            num = submission_match.groups()[0]
+            submission_number = f"SUB-2026-{num.zfill(3)}"
+        
+        navigation_action = {'type': 'open_submission', 'submission_number': submission_number}
+        response = f"Opening submission {submission_number} for you..."
+    elif 'open' in user_input_lower and ('floor' in user_input_lower or 'decor' in user_input_lower):
+        navigation_action = {'type': 'open_submission', 'submission_number': 'SUB-2026-001'}
+        response = "Opening Floor & Decor submission (SUB-2026-001)..."
+    elif 'open' in user_input_lower and ('monrovia' in user_input_lower or 'metalworking' in user_input_lower):
+        navigation_action = {'type': 'open_submission', 'submission_number': 'SUB-2026-003'}
+        response = "Opening Monrovia Metalworking submission (SUB-2026-003)..."
+    elif 'open' in user_input_lower and ('construction' in user_input_lower or 'dynamics' in user_input_lower):
+        navigation_action = {'type': 'open_submission', 'submission_number': 'SUB-2026-007'}
+        response = "Opening Construction Dynamics submission (SUB-2026-007)..."
+    else:
+        # Use regular response generator
+        response = generate_ai_response(user_input)
+    
+    return response, navigation_action
+
+def handle_chat_navigation(navigation_action):
+    """Handle navigation actions triggered from chat"""
+    if navigation_action['type'] == 'open_submission':
+        submission_number = navigation_action['submission_number']
+        
+        # Get all submissions to find the matching one
+        from database_queries import get_all_submissions
+        all_submissions = get_all_submissions()
+        
+        # Find submission by number
+        matching_sub = None
+        for sub in all_submissions:
+            if sub.get('submission_number', '').upper() == submission_number.upper():
+                matching_sub = sub
+                break
+        
+        if matching_sub:
+            # Set selected submission and navigate to detail page
+            st.session_state.selected_submission = matching_sub['id']
+            st.session_state.current_screen = 'detail'
+            st.session_state.chat_open = False  # Close chat after navigation
+        else:
+            st.warning(f"Submission {submission_number} not found.")
+
 def render_dashboard():
     """Render the main dashboard screen"""
-    # Render chatbot sidebar FIRST - this is critical!
-    render_chatbot_sidebar()
+    # Render floating chat (ChatGPT-style)
+    render_floating_chat()
     
     # Load and encode logo
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
@@ -1295,8 +1448,8 @@ def render_dashboard():
 
 def render_submission_detail():
     """Render the detailed submission view"""
-    # Render chatbot sidebar
-    render_chatbot_sidebar()
+    # Render floating chat (ChatGPT-style)
+    render_floating_chat()
     
     # Add sticky header
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
