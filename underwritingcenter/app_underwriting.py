@@ -172,7 +172,7 @@ st.markdown("""
         padding-top: 0 !important;
     }
     
-    /* Ensure tables/dataframes use 1rem font size - comprehensive targeting */
+    /* Ensure tables/dataframes use 1rem font size - comprehensive targeting with high specificity */
     [data-testid="stDataFrame"] table,
     [data-testid="stDataFrame"] td,
     [data-testid="stDataFrame"] th,
@@ -211,7 +211,27 @@ st.markdown("""
     td *,
     th *,
     table td *,
-    table th * {
+    table th *,
+    /* More specific targeting for Streamlit dataframes */
+    .main [data-testid="stDataFrame"] table,
+    .main [data-testid="stDataFrame"] td,
+    .main [data-testid="stDataFrame"] th,
+    .main table,
+    .main table td,
+    .main table th,
+    [data-testid="stAppViewContainer"] [data-testid="stDataFrame"] table,
+    [data-testid="stAppViewContainer"] [data-testid="stDataFrame"] td,
+    [data-testid="stAppViewContainer"] [data-testid="stDataFrame"] th {
+        font-size: 1rem !important;
+    }
+    
+    /* Override any inline styles on table elements */
+    table[style],
+    td[style],
+    th[style],
+    [data-testid="stDataFrame"] table[style],
+    [data-testid="stDataFrame"] td[style],
+    [data-testid="stDataFrame"] th[style] {
         font-size: 1rem !important;
     }
     
@@ -1488,9 +1508,29 @@ def render_chatbot_sidebar():
         # Scrollable chat history container
         chat_container = st.container(height=700)
         with chat_container:
+            # Detect market for welcome message
+            all_submissions = get_all_submissions()
+            welcome_market = 'german'  # default
+            if all_submissions:
+                first_sub = all_submissions[0]
+                welcome_market = detect_market(first_sub['submission_number'], first_sub.get('account_country', ''))
+            
             # Add welcome message to chat history if not already there (so it renders like other messages)
-            # Replace double newlines with HTML breaks to preserve paragraphs
-            welcome_text_raw = """Welcome back, Alice!
+            # Market-specific welcome messages
+            if welcome_market == 'german':
+                welcome_text_raw = """Willkommen zurück, Alice!
+            
+Hier ist, was seit Ihrem letzten Login passiert ist:
+• Das Einreichungsvolumen stieg diese Woche um 12%, mit einem Anstieg in der Bau- und Gesundheitsbranche, was den breiteren Markttrends entspricht, dass diese Sparten aus dem regulären Markt herausgeschrieben werden.
+• Die Appetit-Ausrichtung ist in diesen Segmenten stark, während Bau und Gastgewerbe steigende Out-of-Appetite-Flaggen zeigen, was Inflation und Schadenvolatilität widerspiegelt.
+• Tier-1-Makler trugen 71% der vollständigen, qualifizierten Einreichungen bei, während Makler niedrigerer Stufen mehr belastete Risiken einreichen — wahrscheinlich eine Reaktion auf sich verschärfende Marktbedingungen.
+• Mit 8 veralteten Einreichungen, die kurz vor der automatischen Schließung stehen, ist Workflow-Disziplin entscheidend.
+Einige Dinge, die Sie häufig fragen könnten:
+• Catch me up
+• Erstellen Sie eine Aktionsliste
+• Fragen Sie nach meinen Metriken"""
+            else:  # US market
+                welcome_text_raw = """Welcome back, Alice!
             
 Here's what happened since your last login:
 • Submission volume rose 12% this week, with a surge in Contractors and Healthcare industry, aligning with broader market trends of these lines being written out of the admitted market.
@@ -1650,38 +1690,112 @@ def generate_ai_response(user_input):
     """Generate contextual AI responses based on user input"""
     user_input_lower = user_input.lower()
     
+    # Detect market from database
+    all_submissions = get_all_submissions()
+    current_market = 'german'  # default
+    if all_submissions:
+        first_sub = all_submissions[0]
+        current_market = detect_market(first_sub['submission_number'], first_sub.get('account_country', ''))
+    
     # Contextual responses
-    if 'catch' in user_input_lower or 'update' in user_input_lower or 'summary' in user_input_lower:
+    # Check for "update" variations first (before catch me up)
+    if any(word in user_input_lower for word in ['update', 'updates', 'updated', 'updating']):
         # Store submission cards in session state for rendering
         if 'chat_submission_cards' not in st.session_state:
             st.session_state.chat_submission_cards = []
         
-        # Add submission cards for "catch me up"
-        st.session_state.chat_submission_cards = [
-            {
-                'submission_number': 'SUB-2026-003',
-                'message': 'This submission is ready to be cleared.',
-                'dismissed': False
-            },
-            {
-                'submission_number': 'SUB-2026-001',
-                'message': 'This submission had insufficient documentation when received last Friday.',
-                'details': [
-                    'Email was sent yesterday to the broker to request for missing details.',
-                    'You have received new emails and documents this morning to review for this request.'
-                ],
-                'dismissed': False
-            }
-        ]
+        # Market-specific submission cards for "update"
+        if current_market == 'german':
+            st.session_state.chat_submission_cards = [
+                {
+                    'submission_number': 'SUB-2026-001-DE',
+                    'message': 'Das Angebot wurde angenommen und ist bereit zur Bindung.',
+                    'dismissed': False
+                }
+            ]
+        else:  # US market
+            st.session_state.chat_submission_cards = [
+                {
+                    'submission_number': 'SUB-2026-001',
+                    'message': 'The quote has been accepted, and it is ready to be bound.',
+                    'dismissed': False
+                }
+            ]
         
-        return """One submission that was not under the basic levels required has been declined. You can check it in the Declined Submissions section.
+        return """<!--SUBMISSION_CARDS_START-->"""
+    
+    elif 'catch' in user_input_lower or 'summary' in user_input_lower:
+        # Store submission cards in session state for rendering
+        if 'chat_submission_cards' not in st.session_state:
+            st.session_state.chat_submission_cards = []
+        
+        # Market-specific "catch me up" responses
+        if current_market == 'german':
+            st.session_state.chat_submission_cards = [
+                {
+                    'submission_number': 'SUB-2026-003-DE',
+                    'message': 'Diese Einreichung ist zur Freigabe bereit.',
+                    'dismissed': False
+                },
+                {
+                    'submission_number': 'SUB-2026-001-DE',
+                    'message': 'Diese Einreichung hatte bei Eingang am vergangenen Freitag unzureichende Dokumentation.',
+                    'details': [
+                        'Gestern wurde eine E-Mail an den Makler gesendet, um die fehlenden Details anzufordern.',
+                        'Sie haben heute Morgen neue E-Mails und Dokumente erhalten, die Sie für diese Anfrage prüfen müssen.'
+                    ],
+                    'dismissed': False
+                }
+            ]
+            
+            return """Eine Einreichung, die nicht den grundlegenden Anforderungen entsprach, wurde abgelehnt. Sie können sie im Bereich "Abgelehnte Einreichungen" einsehen.
+
+<!--OPEN_DECLINED_TAB_BUTTON-->
+
+<!--SUBMISSION_CARDS_START-->"""
+        else:  # US market
+            st.session_state.chat_submission_cards = [
+                {
+                    'submission_number': 'SUB-2026-003',
+                    'message': 'This submission is ready to be cleared.',
+                    'dismissed': False
+                },
+                {
+                    'submission_number': 'SUB-2026-001',
+                    'message': 'This submission had insufficient documentation when received last Friday.',
+                    'details': [
+                        'Email was sent yesterday to the broker to request for missing details.',
+                        'You have received new emails and documents this morning to review for this request.'
+                    ],
+                    'dismissed': False
+                }
+            ]
+            
+            return """One submission that was not under the basic levels required has been declined. You can check it in the Declined Submissions section.
 
 <!--OPEN_DECLINED_TAB_BUTTON-->
 
 <!--SUBMISSION_CARDS_START-->"""
     
     elif 'action' in user_input_lower or 'priority' in user_input_lower or 'todo' in user_input_lower:
-        return """**Your Priority Action List:**
+        if current_market == 'german':
+            return """**Ihre Prioritätenliste:**
+
+1. ⚡ **DRINGEND:** Möbel & Wohnen Schmidt GmbH (SUB-2026-001-DE)
+   - Prioritätsscore: 4.8 | Vollständigkeit: 74%
+   - Aktion: Prüfen und Angebot erstellen
+
+2. 🔔 **HOCH:** Tech Distribution GmbH (SUB-2026-003-DE)
+   - Prioritätsscore: 4.7 | Vollständigkeit: 80%
+   - Aktion: Dokumentenprüfung erforderlich
+
+3. 📋 **MITTEL:** Bauhaus AG (SUB-2026-007-DE)
+   - Bereit zur Bindung
+   - Aktion: Angebot an Makler senden
+
+Soll ich Ihnen zuerst mit Möbel & Wohnen Schmidt helfen?"""
+        else:  # US market
+            return """**Your Priority Action List:**
 
 1. ⚡ **URGENT:** Floor & Decor (SUB-2026-001)
    - Priority Score: 4.8 | Completeness: 74%
@@ -1698,7 +1812,27 @@ def generate_ai_response(user_input):
 Shall I help you with Floor & Decor first?"""
     
     elif 'help' in user_input_lower or 'what can' in user_input_lower:
-        return """I can help you with:
+        if current_market == 'german':
+            return """Ich kann Ihnen helfen bei:
+
+**Einreichungsverwaltung:**
+• Aktualisierungen zu aktiven Einreichungen erhalten
+• Priorisierte Aktionslisten erstellen
+• Einreichungsstatus prüfen
+
+**Analysen & Erkenntnisse:**
+• KPI-Trends überprüfen
+• Maklerleistung analysieren
+• Appetit-Ausrichtungsprobleme identifizieren
+
+**Schnellaktionen:**
+• Bestimmte Einreichungen öffnen
+• Angebote erstellen
+• Erinnerungen an Makler senden
+
+Fragen Sie mich einfach!"""
+        else:  # US market
+            return """I can help you with:
 
 **Submission Management:**
 • Get updates on active submissions
@@ -1733,8 +1867,20 @@ Just ask me anything!"""
 This is a Tier 1 broker submission with strong appetite alignment. Would you like me to open this submission for review?"""
     
     else:
-        # Generic helpful response
-        return f"""I understand you're asking about "{user_input}". 
+        # Generic helpful response - market-specific
+        if current_market == 'german':
+            return f"""Ich verstehe, dass Sie nach "{user_input}" fragen.
+
+Ich kann Ihnen bei Einreichungsprüfungen, Prioritätsaktionen, KPI-Einblicken und Workflow-Management helfen.
+
+Versuchen Sie zu fragen:
+• "Was braucht meine Aufmerksamkeit?"
+• "Zeigen Sie mir Einreichungen mit hoher Priorität"
+• "Geben Sie mir eine Zusammenfassung der heutigen Aktivitäten"
+
+Wie kann ich Ihnen helfen?"""
+        else:  # US market
+            return f"""I understand you're asking about "{user_input}". 
 
 I can help you with submission reviews, priority actions, KPI insights, and workflow management. 
 
@@ -1934,12 +2080,53 @@ def render_dashboard():
     </style>
     """, unsafe_allow_html=True)
     
+    # Inject JavaScript to force table font size to 1rem
+    components.html("""
+    <script>
+    (function() {
+        function forceTableFontSize() {
+            // Target all table elements
+            const tables = document.querySelectorAll('table, [data-testid="stDataFrame"] table, .stDataFrame table');
+            tables.forEach(function(table) {
+                // Set font size on table and all cells
+                table.style.fontSize = '1rem';
+                const cells = table.querySelectorAll('td, th');
+                cells.forEach(function(cell) {
+                    cell.style.fontSize = '1rem';
+                    // Also set on any nested elements
+                    const nested = cell.querySelectorAll('*');
+                    nested.forEach(function(el) {
+                        el.style.fontSize = '1rem';
+                    });
+                });
+            });
+        }
+        
+        // Run immediately
+        forceTableFontSize();
+        
+        // Run after a short delay to catch dynamically loaded content
+        setTimeout(forceTableFontSize, 100);
+        setTimeout(forceTableFontSize, 500);
+        
+        // Also run when DOM changes (for dynamic content)
+        const observer = new MutationObserver(function(mutations) {
+            forceTableFontSize();
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    })();
+    </script>
+    """, height=0)
+    
     st.markdown('<h3 class="my-submissions-header" style="margin-top: 0; margin-bottom: 8px; color: white; font-weight: 700; font-size: 1.25rem !important;">My Submissions</h3>', unsafe_allow_html=True)
     
     # Detect market from first submission in database (German or US)
     all_submissions = get_all_submissions()
-    dashboard_market = 'us'  # default
-    dashboard_currency = '$'
+    dashboard_market = 'german'  # default
+    dashboard_currency = '€'
     if all_submissions:
         first_sub = all_submissions[0]
         dashboard_market = detect_market(first_sub['submission_number'], first_sub.get('account_country', ''))
@@ -2283,9 +2470,21 @@ def render_dashboard():
                 
                 df = pd.DataFrame(df_display)
                 
+                # Style the dataframe to set font size to 1rem
+                styled_df = df.style.set_table_styles([
+                    {
+                        'selector': 'td, th',
+                        'props': [('font-size', '1rem')]
+                    },
+                    {
+                        'selector': 'table',
+                        'props': [('font-size', '1rem')]
+                    }
+                ])
+                
                 # Display as a clickable table using st.dataframe with selection
                 event = st.dataframe(
-                    df,
+                    styled_df,
                     use_container_width=True,
                     hide_index=True,
                     on_select="rerun",
@@ -2341,7 +2540,18 @@ def render_dashboard():
                 'Effective Date': s['effective_date'].strftime('%Y-%m-%d') if s['effective_date'] else 'N/A',
                 'Priority Score': f"{s['priority_score']:.1f}" if s['priority_score'] else 'N/A'
             } for s in bound_subs])
-            st.dataframe(df_bound, use_container_width=True, hide_index=True)
+            # Style the dataframe to set font size to 1rem
+            styled_df_bound = df_bound.style.set_table_styles([
+                {
+                    'selector': 'td, th',
+                    'props': [('font-size', '1rem')]
+                },
+                {
+                    'selector': 'table',
+                    'props': [('font-size', '1rem')]
+                }
+            ])
+            st.dataframe(styled_df_bound, use_container_width=True, hide_index=True)
         else:
             st.info("No bound submissions yet. Complete the quote process to bind a policy.")
     
@@ -2355,7 +2565,18 @@ def render_dashboard():
                 'Broker': s['broker'],
                 'Reason': 'Out of appetite'
             } for s in declined_subs])
-            st.dataframe(df_declined, use_container_width=True, hide_index=True)
+            # Style the dataframe to set font size to 1rem
+            styled_df_declined = df_declined.style.set_table_styles([
+                {
+                    'selector': 'td, th',
+                    'props': [('font-size', '1rem')]
+                },
+                {
+                    'selector': 'table',
+                    'props': [('font-size', '1rem')]
+                }
+            ])
+            st.dataframe(styled_df_declined, use_container_width=True, hide_index=True)
         else:
             st.info("No declined submissions.")
     
