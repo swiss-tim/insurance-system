@@ -618,7 +618,7 @@ def render_floating_chat():
     if 'show_welcome' not in st.session_state:
         st.session_state.show_welcome = True
     
-    # Add CSS for floating chat button
+    # Add CSS for floating chat button and Guidewire styling
     st.markdown("""
     <style>
     /* Position chat popover button in top right */
@@ -629,26 +629,105 @@ def render_floating_chat():
         z-index: 1000 !important;
     }
     
-    /* Style the popover content */
+    /* Style the popover content - Guidewire styling */
     div[data-testid="stPopoverContent"] {
-        width: 400px !important;
+        width: 380px !important;
+        padding: 20px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        background-color: #ffffff !important;
+    }
+    
+    /* Style chat header */
+    div[data-testid="stPopoverContent"] h3 {
+        font-size: 1.125rem !important;
+        font-weight: 600 !important;
+        color: #1f2937 !important;
+        margin-bottom: 16px !important;
+        margin-top: 0 !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Style paragraphs and text */
+    div[data-testid="stPopoverContent"] p {
+        margin: 8px 0 !important;
+        color: #374151 !important;
+        font-size: 0.875rem !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* Style bullet points */
+    div[data-testid="stPopoverContent"] ul {
+        margin: 12px 0 !important;
+        padding-left: 20px !important;
+        line-height: 1.6 !important;
+    }
+    
+    div[data-testid="stPopoverContent"] li {
+        margin: 8px 0 !important;
+        color: #374151 !important;
+        font-size: 0.875rem !important;
+    }
+    
+    /* Style suggested questions header */
+    div[data-testid="stPopoverContent"] p strong {
+        color: #1f2937 !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        display: block !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Style chat messages - Guidewire style */
+    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] {
+        margin: 16px 0 !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+    }
+    
+    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] [data-testid="stChatMessageUser"] {
+        background-color: #f3f4f6 !important;
+    }
+    
+    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] {
+        background-color: #eff6ff !important;
+    }
+    
+    /* Style chat input */
+    div[data-testid="stPopoverContent"] [data-testid="stChatInput"] {
+        margin-top: 12px !important;
+    }
+    
+    /* Style disclaimer - Guidewire style */
+    .chat-disclaimer {
+        font-size: 0.75rem !important;
+        color: #6b7280 !important;
+        margin-top: 16px !important;
+        padding-top: 12px !important;
+        border-top: 1px solid #e5e7eb !important;
+        line-height: 1.5 !important;
+    }
+    
+    .chat-disclaimer a {
+        color: #2563eb !important;
+        text-decoration: none !important;
+    }
+    
+    .chat-disclaimer a:hover {
+        text-decoration: underline !important;
     }
     </style>
     """, unsafe_allow_html=True)
     
     # Floating chat window using popover (button is part of popover)
     with st.popover("💬 Chat", use_container_width=False):
-        # Chat header
-        st.markdown("### 🤖 Underwriting Assistant")
-        st.caption(f"*{time.strftime('%I:%M %p')}*")
-        st.markdown("---")
+        # Chat header - Guidewire style
+        st.markdown("### ✨ Underwriting Assistant")
         
         # Scrollable chat history container
-        chat_container = st.container(height=400)
+        chat_container = st.container(height=450)
         with chat_container:
-            # Welcome message (show once)
+            # Welcome message (show once) - Guidewire style
             if st.session_state.show_welcome:
-                st.markdown("**Welcome back, Alice! Here's what happened since your last login:**")
                 st.markdown("""
                 • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
                 
@@ -663,8 +742,7 @@ def render_floating_chat():
                 st.markdown("""
                 • Catch me up
                 • Create an action list
-                • Show me high-priority items
-                • Open submission [number]
+                • Ask about my metrics
                 """)
             
             # Chat history using st.chat_message
@@ -675,6 +753,13 @@ def render_floating_chat():
                 else:
                     with st.chat_message("assistant"):
                         st.markdown(msg['content'])
+        
+        # Disclaimer - Guidewire style
+        st.markdown("""
+        <div class="chat-disclaimer">
+        The above response was generated by an AI system and may not provide a complete and accurate answer. Please reference the provided sources for more detailed information related to your question. <a href="#" style="color: #2563eb;">Learn more</a>.
+        </div>
+        """, unsafe_allow_html=True)
         
         # Chat input (outside scrollable container - always visible at bottom)
         user_input = st.chat_input("Type your message...")
@@ -693,13 +778,6 @@ def render_floating_chat():
                 handle_chat_navigation(navigation_action)
             
             st.rerun()
-        
-        # Clear chat button
-        if len(st.session_state.chat_messages) > 0:
-            if st.button("🗑️ Clear Chat", use_container_width=True, key="clear_chat_floating"):
-                st.session_state.chat_messages = []
-                st.session_state.show_welcome = True
-                st.rerun()
 
 def render_chatbot_sidebar():
     """Render the AI underwriting assistant chatbot in the sidebar (BACKUP - kept for reference)"""
@@ -992,7 +1070,7 @@ def render_dashboard():
     }}
     
     header[data-testid="stHeader"]::after {{
-        content: 'Guidewire Underwriting Center';
+        content: 'Guidewire Underwriting Center for DräumVersicherung';
         color: white;
         font-size: 1em;
         font-weight: 400;
@@ -1534,7 +1612,7 @@ def render_submission_detail():
     }}
     
     header[data-testid="stHeader"]::after {{
-        content: 'Guidewire Underwriting Center';
+        content: 'Guidewire Underwriting Center for DräumVersicherung';
         color: white;
         font-size: 1em;
         font-weight: 400;
