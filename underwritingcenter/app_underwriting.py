@@ -319,24 +319,154 @@ st.markdown("""
         background-color: #1d4ed8;
     }
     
-    /* Reduce side border space by 80% - default Streamlit padding is ~5rem (80px), reduce to 20% = 1rem (16px) */
+    /* Reduce side border space by 80% - use negative margins only */
+    /* Streamlit default padding is ~5rem (80px), reduce to ~1rem (16px) = 80% reduction */
     .main .block-container {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
-        max-width: 100% !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
+    }
+    
+    /* Wide layout specific overrides - reduce both sides */
+    [data-testid="stAppViewContainer"][data-layout="wide"] .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+    }
+    
+    /* Target the wide layout wrapper - reduce both sides */
+    .stApp[data-layout="wide"] .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+    }
+    
+    [data-testid="stAppViewContainer"] {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
     }
     
     [data-testid="stAppViewContainer"] > .main {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
     }
     
-    /* Remove footer */
+    [data-testid="stAppViewBlockContainer"] {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
+    }
+    
+    /* Target root app container */
+    .stApp {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    .stApp > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+    }
+    
+    /* Target element containers - remove their padding */
+    .element-container {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Override Streamlit's wide layout max-width constraints - reduce both sides */
+    .stApp[data-layout="wide"] .main .block-container,
+    [data-layout="wide"] .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+    }
+    
+    /* Target any divs that might have max-width constraints */
+    .main > div {
+        max-width: 100% !important;
+    }
+    
+    /* Ensure full width for wide layout - reduce both sides */
+    [data-layout="wide"] [data-testid="stAppViewContainer"] {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
+    }
+    
+    /* More aggressive padding removal - target all nested divs */
+    .main .block-container > div {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Target Streamlit's column system */
+    .main .block-container [data-testid="column"] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Target all direct children of main - reduce both sides */
+    .main > div {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+    }
+    
+    /* Override any margin that creates space */
+    .main .block-container {
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+    }
+    
+    /* Target the actual content wrapper - reduce both sides */
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+    }
+    
+    /* Remove padding from all nested containers */
+    .main .block-container [class*="container"],
+    .main .block-container [class*="Container"] {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Remove footer - simple approach */
+    footer {
+        display: none !important;
+    }
+    
     footer[data-testid="stFooter"] {
         display: none !important;
     }
     
-    /* Also target any footer elements */
     .stApp footer {
         display: none !important;
     }
@@ -632,175 +762,6 @@ def stream_text(text, delay=0.02):
         time.sleep(delay)
     return placeholder
 
-def render_floating_chat():
-    """Render ChatGPT-style floating chat window using st.popover"""
-    # Initialize chat state if not exists
-    if 'chat_messages' not in st.session_state:
-        st.session_state.chat_messages = []
-    if 'show_welcome' not in st.session_state:
-        st.session_state.show_welcome = True
-    
-    # Add CSS for floating chat button and Guidewire styling
-    st.markdown("""
-    <style>
-    /* Position chat popover button in top right */
-    div[data-testid="stPopover"]:has(button:contains("💬")) {
-        position: fixed !important;
-        top: 80px !important;
-        right: 20px !important;
-        z-index: 1000 !important;
-    }
-    
-    /* Style the popover content - Guidewire styling */
-    div[data-testid="stPopoverContent"] {
-        width: 380px !important;
-        padding: 20px !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
-        background-color: #ffffff !important;
-    }
-    
-    /* Style chat header */
-    div[data-testid="stPopoverContent"] h3 {
-        font-size: 1.125rem !important;
-        font-weight: 600 !important;
-        color: #1f2937 !important;
-        margin-bottom: 16px !important;
-        margin-top: 0 !important;
-        line-height: 1.5 !important;
-    }
-    
-    /* Style paragraphs and text */
-    div[data-testid="stPopoverContent"] p {
-        margin: 8px 0 !important;
-        color: #374151 !important;
-        font-size: 0.875rem !important;
-        line-height: 1.6 !important;
-    }
-    
-    /* Style bullet points */
-    div[data-testid="stPopoverContent"] ul {
-        margin: 12px 0 !important;
-        padding-left: 20px !important;
-        line-height: 1.6 !important;
-    }
-    
-    div[data-testid="stPopoverContent"] li {
-        margin: 8px 0 !important;
-        color: #374151 !important;
-        font-size: 0.875rem !important;
-    }
-    
-    /* Style suggested questions header */
-    div[data-testid="stPopoverContent"] p strong {
-        color: #1f2937 !important;
-        font-weight: 600 !important;
-        font-size: 0.875rem !important;
-        display: block !important;
-        margin-bottom: 8px !important;
-    }
-    
-    /* Style chat messages - Guidewire style */
-    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] {
-        margin: 16px 0 !important;
-        padding: 12px !important;
-        border-radius: 8px !important;
-    }
-    
-    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] [data-testid="stChatMessageUser"] {
-        background-color: #f3f4f6 !important;
-    }
-    
-    div[data-testid="stPopoverContent"] [data-testid="stChatMessage"] [data-testid="stChatMessageAssistant"] {
-        background-color: #eff6ff !important;
-    }
-    
-    /* Style chat input */
-    div[data-testid="stPopoverContent"] [data-testid="stChatInput"] {
-        margin-top: 12px !important;
-    }
-    
-    /* Style disclaimer - Guidewire style */
-    .chat-disclaimer {
-        font-size: 0.75rem !important;
-        color: #6b7280 !important;
-        margin-top: 16px !important;
-        padding-top: 12px !important;
-        border-top: 1px solid #e5e7eb !important;
-        line-height: 1.5 !important;
-    }
-    
-    .chat-disclaimer a {
-        color: #2563eb !important;
-        text-decoration: none !important;
-    }
-    
-    .chat-disclaimer a:hover {
-        text-decoration: underline !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Floating chat window using popover (button is part of popover)
-    with st.popover("💬 Chat", use_container_width=False):
-        # Chat header - Guidewire style
-        st.markdown("### ✨ Underwriting Assistant")
-        
-        # Scrollable chat history container
-        chat_container = st.container(height=450)
-        with chat_container:
-            # Welcome message (show once) - Guidewire style
-            if st.session_state.show_welcome:
-                st.markdown("""
-                • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
-                
-                • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
-                
-                • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
-                
-                • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
-                """)
-                
-                st.markdown("**Some things you could commonly ask for:**")
-                st.markdown("""
-                • Catch me up
-                • Create an action list
-                • Ask about my metrics
-                """)
-            
-            # Chat history using st.chat_message
-            for msg in st.session_state.chat_messages:
-                if msg['role'] == 'user':
-                    with st.chat_message("user"):
-                        st.markdown(msg['content'])
-                else:
-                    with st.chat_message("assistant"):
-                        st.markdown(msg['content'])
-        
-        # Disclaimer - Guidewire style
-        st.markdown("""
-        <div class="chat-disclaimer">
-        The above response was generated by an AI system and may not provide a complete and accurate answer. Please reference the provided sources for more detailed information related to your question. <a href="#" style="color: #2563eb;">Learn more</a>.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Chat input (outside scrollable container - always visible at bottom)
-        user_input = st.chat_input("Type your message...")
-        
-        if user_input:
-            # Add user message
-            st.session_state.chat_messages.append({'role': 'user', 'content': user_input})
-            
-            # Generate AI response and check for navigation triggers
-            response, navigation_action = generate_ai_response_with_navigation(user_input)
-            st.session_state.chat_messages.append({'role': 'assistant', 'content': response})
-            st.session_state.show_welcome = False
-            
-            # Handle navigation if triggered
-            if navigation_action:
-                handle_chat_navigation(navigation_action)
-            
-            st.rerun()
-
 def render_chatbot_sidebar():
     """Render the AI underwriting assistant chatbot in the sidebar with popover-style features"""
     # Add CSS for sidebar chat - Guidewire styling
@@ -811,33 +772,45 @@ def render_chatbot_sidebar():
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         background-color: #3c5c6c !important;
         padding: 0 !important;
+        padding-left: 30px !important;
+        padding-right: 0px !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
-    /* Style sidebar content area - remove all padding */
+    /* Style sidebar content area - remove all padding, especially bottom */
     section[data-testid="stSidebar"] > div {
         background-color: #3c5c6c !important;
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
     section[data-testid="stSidebar"] > div > div {
         background-color: #3c5c6c !important;
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
     /* Remove padding from sidebar content wrapper */
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
-    /* Style scrollable container - remove padding and outline */
+    /* Style scrollable container - remove padding and outline, especially bottom */
     section[data-testid="stSidebar"] [data-testid="element-container"] {
         background-color: #3c5c6c !important;
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
         outline: none !important;
         border: none !important;
     }
@@ -845,21 +818,27 @@ def render_chatbot_sidebar():
     section[data-testid="stSidebar"] [data-baseweb="block"] {
         background-color: #3c5c6c !important;
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
-    /* Remove padding from container */
+    /* Remove padding from container, especially bottom */
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
         padding: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+        margin-bottom: 0 !important;
     }
     
     /* Minimize padding in scrollable area - target container with height */
+    /* Increase left padding to prevent text cutoff */
     section[data-testid="stSidebar"] [data-testid="element-container"][style*="height"] {
-        padding-left: 4px !important;
-        padding-right: 4px !important;
+        padding-left: 0px !important;
+        padding-right: 0px !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
     }
     
     /* Remove any borders/outlines from containers */
@@ -871,36 +850,48 @@ def render_chatbot_sidebar():
         box-shadow: none !important;
     }
     
-    /* Target the scrollable container specifically - minimize all padding and remove outline */
+    /* Target the scrollable container specifically - increase left padding to prevent cutoff */
     section[data-testid="stSidebar"] div[style*="overflow"] {
-        padding-left: 4px !important;
-        padding-right: 4px !important;
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
         outline: none !important;
         border: none !important;
     }
     
-    /* Reduce padding on all sidebar content */
+    /* Remove bottom padding from form elements */
+    section[data-testid="stSidebar"] form {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-baseweb="form"] {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Increase padding on all sidebar content to prevent cutoff */
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] ul,
     section[data-testid="stSidebar"] li {
-        margin-left: 4px !important;
-        margin-right: 4px !important;
+        margin-left: 0px !important;
+        margin-right: 0px !important;
     }
     
-    /* Reduce padding on chat input and disclaimer */
+    /* Increase padding on chat input and disclaimer */
     section[data-testid="stSidebar"] [data-testid="stChatInput"] {
-        margin-left: 4px !important;
-        margin-right: 4px !important;
+        margin-left: 0px !important;
+        margin-right: 0px !important;
     }
     
     section[data-testid="stSidebar"] .sidebar-chat-disclaimer {
-        margin-left: 4px !important;
-        margin-right: 4px !important;
+        margin-left: 20px !important;
+        margin-right: 0px !important;
     }
     
-    /* Style sidebar header - minimal padding */
+    /* Style sidebar header - increase left padding to prevent cutoff */
     section[data-testid="stSidebar"] h3 {
         font-size: 1.125rem !important;
         font-weight: 600 !important;
@@ -912,7 +903,7 @@ def render_chatbot_sidebar():
     
     /* Style paragraphs and text - white on dark background, minimal spacing */
     section[data-testid="stSidebar"] p {
-        margin: 4px 0 !important;
+        margin: 0px 0 !important;
         color: white !important;
         font-size: 0.875rem !important;
         line-height: 1.4 !important;
@@ -920,8 +911,8 @@ def render_chatbot_sidebar():
     
     /* Style bullet points - minimal spacing */
     section[data-testid="stSidebar"] ul {
-        margin: 4px 0 !important;
-        padding-left: 20px !important;
+        margin: 0px 0 !important;
+        padding-left: 0px !important;
         line-height: 1.4 !important;
     }
     
@@ -940,12 +931,7 @@ def render_chatbot_sidebar():
         margin-bottom: 4px !important;
     }
     
-    /* Style chat messages - dark background compatible, minimal spacing */
-    section[data-testid="stSidebar"] [data-testid="stChatMessage"] {
-        margin: 4px 0 !important;
-        padding: 8px !important;
-        border-radius: 8px !important;
-    }
+
     
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] [data-testid="stChatMessageUser"] {
         background-color: rgba(255, 255, 255, 0.1) !important;
@@ -987,20 +973,39 @@ def render_chatbot_sidebar():
         border-radius: 50% !important;
     }
     
-    /* Style chat input - minimal margins */
+    /* Style chat input - minimal margins, no bottom padding */
     section[data-testid="stSidebar"] [data-testid="stChatInput"] {
         margin-top: 4px !important;
-        margin-bottom: 2px !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
     }
     
-    /* Style disclaimer - smaller, below input, visible on dark background */
+    /* Style disclaimer - smaller, below input, no bottom padding */
     .sidebar-chat-disclaimer {
         font-size: 0.65rem !important;
         color: rgba(255, 255, 255, 0.7) !important;
         margin-top: 2px !important;
         padding-top: 2px !important;
-        margin-bottom: 2px !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
         line-height: 1.3 !important;
+    }
+    
+    /* Remove bottom padding from sidebar bottom containers */
+    section[data-testid="stSidebar"] [data-testid="element-container"]:last-child {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"]:last-child {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Remove bottom padding from sidebar wrapper */
+    section[data-testid="stSidebar"] > div:last-child {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
     }
     
     .sidebar-chat-disclaimer a {
@@ -1099,26 +1104,27 @@ def render_chatbot_sidebar():
         st.markdown("### ✨ Underwriting Assistant")
         
         # Scrollable chat history container
-        chat_container = st.container(height=450)
+        chat_container = st.container(height=600)
         with chat_container:
-            # Welcome message (show once) - Guidewire style
+            # Welcome message (show once) - Guidewire style with avatar
             if st.session_state.show_welcome:
-                st.markdown("""
-                • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
-                
-                • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
-                
-                • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
-                
-                • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
-                """)
-                
-                st.markdown("**Some things you could commonly ask for:**")
-                st.markdown("""
-                • Catch me up
-                • Create an action list
-                • Ask about my metrics
-                """)
+                with st.chat_message("assistant"):
+                    st.markdown("""
+                    • Submission volume **rose 12%** this week, with a surge in **Contractors and Healthcare industry**, aligning with broader market trends of these lines being written out of the admitted market.
+                    
+                    • Appetite alignment is strong in these segments, while **construction and hospitality show rising out-of-appetite flags**, reflecting inflation and claims volatility.
+                    
+                    • **Tier 1 brokers** contributed **71%** of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
+                    
+                    • With **8 stale submissions nearing auto-closure**, workflow discipline is key.
+                    """)
+                    
+                    st.markdown("**Some things you could commonly ask for:**")
+                    st.markdown("""
+                    • Catch me up
+                    • Create an action list
+                    • Ask about my metrics
+                    """)
             
             # Chat history using st.chat_message
             for msg in st.session_state.chat_messages:
@@ -1329,21 +1335,47 @@ def render_dashboard():
         background-color: transparent !important;
     }}
     
-    /* Reduce space between header and main content - BOTH margin AND transform */
+    /* Reduce space between header and main content - BOTH margin AND transform for vertical */
+    /* Reduce both left and right padding using negative margins */
     [data-testid="stAppViewContainer"] {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
     }}
     
     [data-testid="stAppViewContainer"] > .main {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
         margin-top: -60px !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
         transform: translateY(-60px) !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
+    }}
+    
+    [data-testid="stAppViewBlockContainer"] {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
     }}
     
     .main .block-container {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
         margin-top: -60px !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
         transform: translateY(-60px) !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
     }}
     
     /* Target the first element container with both margin and transform */
@@ -1845,8 +1877,8 @@ def render_dashboard():
 
 def render_submission_detail():
     """Render the detailed submission view"""
-    # Render floating chat (ChatGPT-style)
-    render_floating_chat()
+    # Render chatbot sidebar with popover-style features
+    render_chatbot_sidebar()
     
     # Add sticky header
     logo_path = os.path.join(os.path.dirname(__file__), 'guidewire.png')
@@ -1871,21 +1903,47 @@ def render_submission_detail():
         background-color: transparent !important;
     }}
     
-    /* Reduce space between header and main content - BOTH margin AND transform */
+    /* Reduce space between header and main content - BOTH margin AND transform for vertical */
+    /* Reduce both left and right padding using negative margins */
     [data-testid="stAppViewContainer"] {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
     }}
     
     [data-testid="stAppViewContainer"] > .main {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
         margin-top: -60px !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
         transform: translateY(-60px) !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
+    }}
+    
+    [data-testid="stAppViewBlockContainer"] {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
+        max-width: calc(100% + 8rem) !important;
     }}
     
     .main .block-container {{
         padding-top: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
         margin-top: -60px !important;
+        margin-left: -4rem !important;
+        margin-right: -4rem !important;
         transform: translateY(-60px) !important;
+        max-width: calc(100% + 8rem) !important;
+        width: calc(100% + 8rem) !important;
     }}
     
     /* Target the first element container with both margin and transform */
