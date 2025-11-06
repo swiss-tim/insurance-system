@@ -762,32 +762,81 @@ def render_dashboard():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Sticky header with logo and dark teal background
+    # Sticky header - force into Streamlit's header container using CSS
     st.markdown(f"""
     <style>
-    /* Make header sticky */
-    .sticky-header {{
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background-color: #3c5c6c !important;
-        padding: 12px 20px !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        z-index: 999999 !important;
-        margin: 0 !important;
+    /* Hide Streamlit's default header */
+    header[data-testid="stHeader"] {{
+        display: none !important;
     }}
-    /* Adjust main content to account for sticky header */
+    
+    /* Force our custom header into Streamlit's header area using pseudo-elements */
+    header[data-testid="stHeader"]::before {{
+        content: '';
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3.5rem;
+        background-color: #3c5c6c;
+        z-index: 999;
+        margin: 0;
+        padding: 0;
+    }}
+    
+    /* Ensure sidebar is visible and above header background */
+    section[data-testid="stSidebar"] {{
+        z-index: 1000 !important;
+        position: relative !important;
+    }}
+    
+    /* Adjust main content to account for header */
     .main .block-container {{
         padding-top: 60px !important;
     }}
     </style>
-    <div class="sticky-header">
-        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
-        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
+    
+    <div id="guidewire-custom-header" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3.5rem;
+        background-color: #3c5c6c;
+        padding: 12px 20px;
+        padding-left: calc(21rem + 20px);
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 999;
+        margin: 0;
+    ">
+        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px; position: relative; z-index: 1001;" />
+        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px; position: relative; z-index: 1001;">Guidewire Underwriting Center</span>
     </div>
+    
+    <script>
+    (function() {{
+        function updateHeaderPadding() {{
+            const header = document.getElementById('guidewire-custom-header');
+            const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+            if (header && sidebar) {{
+                const isExpanded = sidebar.getAttribute('aria-expanded') === 'true';
+                header.style.paddingLeft = isExpanded ? 'calc(21rem + 20px)' : 'calc(4rem + 20px)';
+                // Ensure header doesn't cover sidebar - start after sidebar
+                header.style.left = isExpanded ? '21rem' : '4rem';
+            }}
+        }}
+        updateHeaderPadding();
+        const observer = new MutationObserver(updateHeaderPadding);
+        const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar) {{
+            observer.observe(sidebar, {{ attributes: true, attributeFilter: ['aria-expanded'] }});
+        }}
+        setInterval(updateHeaderPadding, 300);
+    }})();
+    </script>
     """, unsafe_allow_html=True)
     
     st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
@@ -1242,31 +1291,81 @@ def render_submission_detail():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
+    # Sticky header - force into Streamlit's header container using CSS
     st.markdown(f"""
     <style>
-    /* Make header sticky */
-    .sticky-header {{
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background-color: #3c5c6c !important;
-        padding: 12px 20px !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        z-index: 999999 !important;
-        margin: 0 !important;
+    /* Hide Streamlit's default header */
+    header[data-testid="stHeader"] {{
+        display: none !important;
     }}
-    /* Adjust main content to account for sticky header */
+    
+    /* Force our custom header into Streamlit's header area using pseudo-elements */
+    header[data-testid="stHeader"]::before {{
+        content: '';
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3.5rem;
+        background-color: #3c5c6c;
+        z-index: 999;
+        margin: 0;
+        padding: 0;
+    }}
+    
+    /* Ensure sidebar is visible and above header background */
+    section[data-testid="stSidebar"] {{
+        z-index: 1000 !important;
+        position: relative !important;
+    }}
+    
+    /* Adjust main content to account for header */
     .main .block-container {{
         padding-top: 60px !important;
     }}
     </style>
-    <div class="sticky-header">
-        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
-        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
+    
+    <div id="guidewire-custom-header" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3.5rem;
+        background-color: #3c5c6c;
+        padding: 12px 20px;
+        padding-left: calc(21rem + 20px);
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 999;
+        margin: 0;
+    ">
+        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px; position: relative; z-index: 1001;" />
+        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px; position: relative; z-index: 1001;">Guidewire Underwriting Center</span>
     </div>
+    
+    <script>
+    (function() {{
+        function updateHeaderPadding() {{
+            const header = document.getElementById('guidewire-custom-header');
+            const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+            if (header && sidebar) {{
+                const isExpanded = sidebar.getAttribute('aria-expanded') === 'true';
+                header.style.paddingLeft = isExpanded ? 'calc(21rem + 20px)' : 'calc(4rem + 20px)';
+                // Ensure header doesn't cover sidebar - start after sidebar
+                header.style.left = isExpanded ? '21rem' : '4rem';
+            }}
+        }}
+        updateHeaderPadding();
+        const observer = new MutationObserver(updateHeaderPadding);
+        const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar) {{
+            observer.observe(sidebar, {{ attributes: true, attributeFilter: ['aria-expanded'] }});
+        }}
+        setInterval(updateHeaderPadding, 300);
+    }})();
+    </script>
     """, unsafe_allow_html=True)
     
     if not st.session_state.selected_submission:
