@@ -763,70 +763,69 @@ def render_dashboard():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Simple CSS-only approach: Header starts after sidebar, sidebar has higher z-index
+    # FINAL ATTEMPT: Don't hide header content, just style it and overlay our content
     st.markdown(f"""
     <style>
-    /* Hide Streamlit's default header */
+    /* Only change header background color - don't hide anything */
     header[data-testid="stHeader"] {{
-        display: none !important;
-    }}
-    
-    /* FORCE sidebar to be visible - aggressive CSS */
-    section[data-testid="stSidebar"] {{
-        z-index: 1001 !important;
-        position: relative !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: 21rem !important;
-    }}
-    
-    /* Sidebar content */
-    section[data-testid="stSidebar"] > div {{
-        display: block !important;
-        visibility: visible !important;
-    }}
-    
-    /* Sidebar toggle button - ensure it's visible */
-    button[kind="header"] {{
-        z-index: 1002 !important;
-        display: block !important;
-        visibility: visible !important;
-    }}
-    
-    /* Custom header - starts after sidebar, doesn't cover scrollbar (17px = scrollbar width) */
-    #guidewire-custom-header {{
-        position: fixed !important;
-        top: 0 !important;
-        left: 21rem !important;
-        width: calc(100% - 21rem - 17px) !important;
-        height: 3.5rem !important;
         background-color: #3c5c6c !important;
-        padding: 12px 20px !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        z-index: 1000 !important;
-        margin: 0 !important;
+        position: relative !important;
     }}
     
-    /* When sidebar is collapsed, adjust header position */
-    section[data-testid="stSidebar"][aria-expanded="false"] ~ * #guidewire-custom-header,
-    section[data-testid="stSidebar"][aria-expanded="false"] + * #guidewire-custom-header {{
-        left: 4rem !important;
-        width: calc(100% - 4rem - 17px) !important;
+    /* Overlay our content on top of Streamlit's header content */
+    header[data-testid="stHeader"]::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #3c5c6c;
+        z-index: 1;
     }}
     
-    /* Adjust main content to account for header */
-    .main .block-container {{
-        padding-top: 60px !important;
+    /* Put our content above the overlay */
+    .gw-header-overlay {{
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        z-index: 2;
+        pointer-events: none;
+    }}
+    
+    .gw-header-overlay * {{
+        pointer-events: auto;
     }}
     </style>
-    
-    <div id="guidewire-custom-header">
-        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
-        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
-    </div>
+    <script>
+    (function() {{
+        function addHeaderOverlay() {{
+            const header = document.querySelector('header[data-testid="stHeader"]');
+            if (header && !header.querySelector('.gw-header-overlay')) {{
+                const overlay = document.createElement('div');
+                overlay.className = 'gw-header-overlay';
+                overlay.innerHTML = `
+                    <img src="data:image/png;base64,{logo_base64}" style="height:28px;margin-right:12px;" />
+                    <span style="color:white;font-size:1em;font-weight:400;letter-spacing:0.3px;">Guidewire Underwriting Center</span>
+                `;
+                header.style.position = 'relative';
+                header.appendChild(overlay);
+            }}
+        }}
+        if (document.readyState === 'loading') {{
+            document.addEventListener('DOMContentLoaded', addHeaderOverlay);
+        }} else {{
+            addHeaderOverlay();
+        }}
+        setTimeout(addHeaderOverlay, 100);
+        setTimeout(addHeaderOverlay, 500);
+    }})();
+    </script>
     """, unsafe_allow_html=True)
     
     st.markdown('<h3 style="margin-top: 8px; margin-bottom: 8px; color: #4b5563; font-weight: 700;">My Submissions</h3>', unsafe_allow_html=True)
@@ -1281,58 +1280,8 @@ def render_submission_detail():
         with open(logo_path, "rb") as f:
             logo_base64 = base64.b64encode(f.read()).decode()
     
-    # Simple CSS-only approach: Header starts after sidebar, sidebar has higher z-index
-    st.markdown(f"""
-    <style>
-    /* Hide Streamlit's default header */
-    header[data-testid="stHeader"] {{
-        display: none !important;
-    }}
-    
-    /* Ensure sidebar is always visible and above header */
-    section[data-testid="stSidebar"] {{
-        z-index: 1001 !important;
-        position: relative !important;
-    }}
-    
-    /* Sidebar toggle button - ensure it's visible */
-    button[kind="header"] {{
-        z-index: 1002 !important;
-    }}
-    
-    /* Custom header - starts after sidebar (21rem = sidebar width when expanded) */
-    #guidewire-custom-header {{
-        position: fixed !important;
-        top: 0 !important;
-        left: 21rem !important;
-        right: 0 !important;
-        height: 3.5rem !important;
-        background-color: #3c5c6c !important;
-        padding: 12px 20px !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        z-index: 1000 !important;
-        margin: 0 !important;
-    }}
-    
-    /* When sidebar is collapsed, adjust header position */
-    section[data-testid="stSidebar"][aria-expanded="false"] ~ * #guidewire-custom-header,
-    section[data-testid="stSidebar"][aria-expanded="false"] + * #guidewire-custom-header {{
-        left: 4rem !important;
-    }}
-    
-    /* Adjust main content to account for header */
-    .main .block-container {{
-        padding-top: 60px !important;
-    }}
-    </style>
-    
-    <div id="guidewire-custom-header">
-        <img src="data:image/png;base64,{logo_base64}" style="height: 28px; margin-right: 12px;" />
-        <span style="color: white; font-size: 1em; font-weight: 400; letter-spacing: 0.3px;">Guidewire Underwriting Center</span>
-    </div>
-    """, unsafe_allow_html=True)
+    # Detail page: NO header styling - let Streamlit's default header and sidebar work normally
+    # Just render the sidebar - that's it!
     
     if not st.session_state.selected_submission:
         st.error("No submission selected")
