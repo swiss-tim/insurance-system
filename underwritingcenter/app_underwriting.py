@@ -1065,6 +1065,29 @@ def render_chatbot_sidebar():
         max-width: 100% !important;
     }
     
+    /* Style bullet points - indent wrapped text after the bullet */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] ul {
+        list-style-position: outside !important;
+        padding-left: 1.5em !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] li {
+        margin: 0.25rem 0 !important;
+        padding-left: 0.5em !important;
+    }
+    
+    /* For bullet points in markdown text (lines starting with •) - hanging indent */
+    section[data-testid="stSidebar"] [data-testid="stChatMessage"] .bullet-point-line {
+        display: block !important;
+        text-indent: -1.2em !important;
+        padding-left: 1.2em !important;
+        margin: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        line-height: 1.4 !important;
+    }
+    
     /* Make avatars 80% smaller - target the avatar container */
     section[data-testid="stSidebar"] [data-testid="stChatMessage"] > div:first-child {
         width: 16px !important;
@@ -1290,26 +1313,46 @@ def render_chatbot_sidebar():
             # Add welcome message to chat history if not already there (so it renders like other messages)
             # Replace double newlines with HTML breaks to preserve paragraphs
             welcome_text_raw = """Welcome back, Alice! Here's what happened since your last login:
-
 • Submission volume rose 12% this week, with a surge in Contractors and Healthcare industry, aligning with broader market trends of these lines being written out of the admitted market.
 • Appetite alignment is strong in these segments, while construction and hospitality show rising out-of-appetite flags, reflecting inflation and claims volatility.
 • Tier 1 brokers contributed 71% of complete, qualified submissions, while lower-tier brokers are submitting more distressed risks — likely a response to tightening market conditions.
 • With 8 stale submissions nearing auto-closure, workflow discipline is key.
 
-
 Some things you could commonly ask for:
-
 • Catch me up
-
 • Create an action list
-
 • Ask about my metrics"""
             
-            # Split by double newlines to create paragraphs, then join with double <br> tags
-            # This ensures double line breaks are preserved
-            paragraphs = welcome_text_raw.split('\n\n')
-            # Replace single newlines within paragraphs with <br>, then join paragraphs with <br><br>
-            welcome_text = '<br><br>'.join([p.replace('\n', '<br>') for p in paragraphs])
+            # Process line breaks:
+            # - Double or triple newlines → <br><br><br> (empty line/paragraph)
+            # - Single newlines → <br> (just a line break, no extra spacing)
+            welcome_text = welcome_text_raw
+            # First, normalize triple+ newlines to double (both become empty line)
+            welcome_text = re.sub(r'\n{3,}', '\n\n', welcome_text)
+            # Replace double newlines with 3 <br> tags (empty line/paragraph)
+            welcome_text = welcome_text.replace('\n\n', '<br><br><br>')
+            # Replace single newlines with 1 <br> tag (just a line break)
+            welcome_text = welcome_text.replace('\n', '<br>')
+            
+            # Wrap bullet point lines in spans for hanging indent styling
+            lines = welcome_text.split('<br>')
+            processed_lines = []
+            for i, line in enumerate(lines):
+                if line.strip().startswith('•'):
+                    # Wrap bullet point line in span with class for styling
+                    processed_lines.append(f'<span class="bullet-point-line">{line}</span>')
+                    # Only add <br> if next line is not a bullet point and not empty
+                    if i + 1 < len(lines):
+                        next_line = lines[i + 1].strip()
+                        if next_line and not next_line.startswith('•'):
+                            processed_lines.append('<br>')
+                elif line.strip():  # Non-empty, non-bullet line
+                    processed_lines.append(line)
+                    if i + 1 < len(lines):
+                        processed_lines.append('<br>')
+                else:  # Empty line (preserve for paragraph spacing)
+                    processed_lines.append('<br>')
+            welcome_text = ''.join(processed_lines)
             
             if st.session_state.show_welcome:
                 # Add welcome message to chat history so it renders the same way as other messages
