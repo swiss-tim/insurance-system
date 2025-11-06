@@ -1169,7 +1169,7 @@ def render_chatbot_sidebar():
         st.markdown("### ✨ Underwriting Assistant")
         
         # Scrollable chat history container
-        chat_container = st.container(height=600)
+        chat_container = st.container(height=700)
         with chat_container:
             # Welcome message (show once) - Guidewire style with avatar
             if st.session_state.show_welcome:
