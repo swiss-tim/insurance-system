@@ -666,7 +666,9 @@ if 'submission_state' not in st.session_state:
         'is_comparison_visible': False,
         'quotes': [],  # Will contain 'base' and/or 'generated'
         'endorsements': all_default_endorsements,
-        'widget_key_suffix': ''  # Used to force widget refresh
+        'widget_key_suffix': '',  # Used to force widget refresh
+        'bind_available': False,
+        'bind_suppressed': False
     }
 
 # Loading modal state
@@ -1506,7 +1508,7 @@ def render_chatbot_sidebar():
         st.markdown("### ✨ Underwriting Assistant")
         
         # Scrollable chat history container
-        chat_container = st.container(height=700)
+        chat_container = st.container(height=600)
         with chat_container:
             # Detect market for welcome message
             all_submissions = get_all_submissions()
@@ -1514,6 +1516,7 @@ def render_chatbot_sidebar():
             if all_submissions:
                 first_sub = all_submissions[0]
                 welcome_market = detect_market(first_sub['submission_number'], first_sub.get('account_country', ''))
+            st.session_state['sidebar_market'] = welcome_market
             
             # Add welcome message to chat history if not already there (so it renders like other messages)
             # Market-specific welcome messages
@@ -1577,8 +1580,10 @@ Some things you could commonly ask for:
                 # Add welcome message to chat history so it renders the same way as other messages
                 # Check if welcome message is already in chat history
                 welcome_already_added = any(
-                    msg.get('role') == 'assistant' and 
-                    msg.get('content', '').startswith('Welcome back, Alice!')
+                    msg.get('role') == 'assistant' and (
+                        msg.get('content', '').startswith('Welcome back, Alice!') or
+                        msg.get('content', '').startswith('Willkommen zurück, Alice!')
+                    )
                     for msg in st.session_state.chat_messages
                 )
                 if not welcome_already_added:
@@ -1661,8 +1666,31 @@ Some things you could commonly ask for:
                             # Regular message rendering
                             st.markdown(msg['content'], unsafe_allow_html=True)
         
+        # Suggested quick actions
+        suggestion_clicked = None
+        sidebar_market = st.session_state.get('sidebar_market', 'german')
+        suggestion_map = {
+            'german': [
+                {'label': '• Catch me up', 'prompt': 'Catch me up'},
+                {'label': '• Erstellen Sie eine Aktionsliste', 'prompt': 'Erstellen Sie eine Aktionsliste'},
+                {'label': '• Fragen Sie nach meinen Metriken', 'prompt': 'Fragen Sie nach meinen Metriken'}
+            ],
+            'us': [
+                {'label': '• Catch me up', 'prompt': 'Catch me up'},
+                {'label': '• Create an action list', 'prompt': 'Create an action list'},
+                {'label': '• Ask about my metrics', 'prompt': 'Ask about my metrics'}
+            ]
+        }
+        suggestions = suggestion_map.get(sidebar_market, suggestion_map['us'])
+        suggestion_container = st.container()
+        for idx, suggestion in enumerate(suggestions):
+            if suggestion_container.button(suggestion['label'], key=f"chat_suggestion_{sidebar_market}_{idx}"):
+                suggestion_clicked = suggestion['prompt']
+        
         # Chat input (outside scrollable container - always visible at bottom)
         user_input = st.chat_input("Type your message...")
+        if suggestion_clicked:
+            user_input = suggestion_clicked
         
         # Disclaimer - Guidewire style (below input)
         st.markdown("""
@@ -1729,7 +1757,33 @@ def generate_ai_response(user_input):
         if 'chat_submission_cards' not in st.session_state:
             st.session_state.chat_submission_cards = []
         
-        # Market-specific "catch me up" responses
+        # Determine if key submission is already quoted/bind-ready
+        target_submission_number = 'SUB-2026-001-DE' if current_market == 'german' else 'SUB-2026-001'
+        target_submission = next((sub for sub in all_submissions if sub.get('submission_number', '').upper() == target_submission_number.upper()), None)
+        target_status = (target_submission.get('status', '') if target_submission else '').upper()
+        ready_to_bind_statuses = {'QUOTED', 'READY TO BIND', 'BINDABLE'}
+
+        if target_submission and target_status in ready_to_bind_statuses:
+            # Mirror the update response when the quote is already accepted
+            if current_market == 'german':
+                st.session_state.chat_submission_cards = [
+                    {
+                        'submission_number': 'SUB-2026-001-DE',
+                        'message': 'Das Angebot wurde angenommen und ist bereit zur Bindung.',
+                        'dismissed': False
+                    }
+                ]
+            else:
+                st.session_state.chat_submission_cards = [
+                    {
+                        'submission_number': 'SUB-2026-001',
+                        'message': 'The quote has been accepted, and it is ready to be bound.',
+                        'dismissed': False
+                    }
+                ]
+            return """<!--SUBMISSION_CARDS_START-->"""
+
+        # Market-specific "catch me up" responses (default path)
         if current_market == 'german':
             st.session_state.chat_submission_cards = [
                 {
@@ -1777,7 +1831,7 @@ def generate_ai_response(user_input):
 
 <!--SUBMISSION_CARDS_START-->"""
     
-    elif 'action' in user_input_lower or 'priority' in user_input_lower or 'todo' in user_input_lower:
+    elif ('action' in user_input_lower or 'priority' in user_input_lower or 'todo' in user_input_lower or 'aktionsliste' in user_input_lower):
         if current_market == 'german':
             return """**Ihre Prioritätenliste:**
 
@@ -1811,7 +1865,7 @@ Soll ich Ihnen zuerst mit Möbel & Wohnen Schmidt helfen?"""
 
 Shall I help you with Floor & Decor first?"""
     
-    elif 'help' in user_input_lower or 'what can' in user_input_lower:
+    elif ('help' in user_input_lower or 'what can' in user_input_lower or 'metriken' in user_input_lower or 'hilfe' in user_input_lower):
         if current_market == 'german':
             return """Ich kann Ihnen helfen bei:
 
@@ -2392,6 +2446,31 @@ def render_dashboard():
                         if st.button("👁️ View", key=f"view_quoted_{sub['id']}", use_container_width=True):
                             st.session_state.selected_submission = sub['id']
                             st.session_state.current_screen = 'submission_detail'
+                            if sub['submission_number'] in ['SUB-2026-001', 'SUB-2026-001-DE']:
+                                demo_market = detect_market(sub['submission_number'])
+                                demo_market_content = get_market_content(demo_market)
+                                all_endorsements = {**demo_market_content['endorsements']['base'],
+                                                   **demo_market_content['endorsements']['recommended']}
+                                status_value = sub.get('status') or 'Triaged'
+                                completeness_value = sub.get('completeness') or 74
+                                priority_value = sub.get('priority_score') or 4.8
+                                appetite_value = sub.get('risk_appetite') or 'High'
+                                bind_available = status_value.upper() == 'QUOTED' and sub.get('accepted', False)
+                                st.session_state.submission_state = {
+                                    'status': status_value,
+                                    'completeness': completeness_value,
+                                    'priority_score': priority_value,
+                                    'risk_appetite': appetite_value,
+                                    'is_summary_visible': False,
+                                    'is_proposal_visible': False,
+                                    'is_recs_visible': False,
+                                    'is_comparison_visible': False,
+                                    'quotes': [],
+                                    'endorsements': all_endorsements,
+                                    'widget_key_suffix': '',
+                                    'bind_available': bind_available,
+                                    'bind_suppressed': False
+                                }
                             st.rerun()
                     with col_sub:
                         st.markdown(f"**{sub['account_name']}**  \n{sub['submission_number']} - *Quoted*")
@@ -2508,18 +2587,26 @@ def render_dashboard():
                         all_endorsements = {**demo_market_content['endorsements']['base'], 
                                            **demo_market_content['endorsements']['recommended']}
                         
+                        status_value = (selected_sub.get('status') or 'Triaged')
+                        completeness_value = selected_sub.get('completeness') or 74
+                        priority_value = selected_sub.get('priority_score') or 4.8
+                        appetite_value = selected_sub.get('risk_appetite') or 'High'
+                        bind_available = status_value.upper() == 'QUOTED' and selected_sub.get('accepted', False)
+
                         st.session_state.submission_state = {
-                            'status': 'Triaged',
-                            'completeness': 74,
-                            'priority_score': 4.8,
-                            'risk_appetite': 'High',
+                            'status': status_value,
+                            'completeness': completeness_value,
+                            'priority_score': priority_value,
+                            'risk_appetite': appetite_value,
                             'is_summary_visible': False,
                             'is_proposal_visible': False,
                             'is_recs_visible': False,
                             'is_comparison_visible': False,
                             'quotes': [],
                             'endorsements': all_endorsements,
-                            'widget_key_suffix': ''
+                            'widget_key_suffix': '',
+                            'bind_available': bind_available,
+                            'bind_suppressed': False
                         }
                     
                     st.rerun()
@@ -2773,6 +2860,16 @@ def render_submission_detail():
     
     # === SUBMISSION KPI ROW ===
     state = st.session_state.submission_state
+    submission_status_upper = (submission.status or state.get('status', '')).upper()
+    state['status'] = submission.status or state.get('status', 'Triaged')
+    if submission.completeness is not None:
+        state['completeness'] = submission.completeness
+    if submission.priority_score is not None:
+        state['priority_score'] = submission.priority_score
+    if submission.risk_appetite:
+        state['risk_appetite'] = submission.risk_appetite
+    if not state.get('bind_suppressed', False):
+        state['bind_available'] = submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False))
     
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
@@ -2968,6 +3065,8 @@ def render_submission_detail():
                         
                         # Update status to Quoted and mark as accepted (ready to bind)
                         st.session_state.submission_state['status'] = 'Quoted'
+                        st.session_state.submission_state['bind_available'] = False
+                        st.session_state.submission_state['bind_suppressed'] = True
                         update_submission_status(
                             st.session_state.selected_submission,
                             'Quoted'
@@ -3116,6 +3215,8 @@ def render_submission_detail():
                         
                         # Update session state
                         st.session_state.submission_state['status'] = 'Quoted'
+                        st.session_state.submission_state['bind_available'] = False
+                        st.session_state.submission_state['bind_suppressed'] = True
                         
                         # Save to database and mark as accepted (ready to bind)
                         update_submission_status(
@@ -3542,6 +3643,37 @@ def render_submission_detail():
             - Mitarbeiterschulungen: 2x jährlich verpflichtend
             """)
     
+    # === READY TO BIND SECTION ===
+    if state.get('bind_available') and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False)):
+        st.markdown("---")
+        st.markdown("### ✅ Ready to Bind")
+        bind_col1, bind_col2, bind_col3 = st.columns([1, 2, 1])
+        with bind_col2:
+            if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="detail_bind_policy"):
+                import random
+                policy_number = random.randint(2800000000, 2899999999)
+                show_loading_modal([
+                    "Sending data to PolicyCenter for Binding",
+                    f"Policy Bound: {policy_number}"
+                ])
+
+                update_submission_status(st.session_state.selected_submission, 'BOUND')
+
+                # Update dashboard KPIs to reflect new bound policy
+                st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                st.session_state.dashboard_kpis['hit_ratio'] = 37
+                st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                st.session_state.chart_data['hit_ratio_q4'] = 37
+                st.session_state.chart_data['premium_q4'] = 1.85
+
+                st.session_state.submission_state['status'] = 'Bound'
+                st.session_state.submission_state['bind_available'] = False
+                st.session_state.submission_state['bind_suppressed'] = False
+
+                st.success("✅ Policy bound successfully! Metrics updated.")
+                time.sleep(1)
+                st.rerun()
+
 
 # === MAIN APP ROUTING ===
 
