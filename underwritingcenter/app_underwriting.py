@@ -22,6 +22,7 @@ import datetime
 import base64
 import textwrap
 import re
+import json
 
 # Add parent directory to path to import database modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -45,51 +46,70 @@ def get_gif_as_base64(file_path):
 
 def get_modal_html(gif_base64, text):
     """
-    Generates the full HTML/CSS for the modal,
-    injecting the GIF and the current text.
+    Generates JavaScript that appends/updates the loading modal in the document body.
+    Ensures the overlay remains centered in the viewport even when scrolling.
     """
+    safe_text = json.dumps(text)
     return f"""
-    <style>
-        /* The Overlay (dimmed background) */
-        .overlay {{
-            position: fixed; /* Sit on top of the page content */
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.7); /* Black background with opacity */
-            z-index: 9998; /* Specify a stack order */
-        }}
+    <script>
+    (function() {{
+        const overlayId = 'gw-loading-overlay';
+        const textId = 'gw-loading-text';
+        const doc = window.parent && window.parent.document ? window.parent.document : document;
+        let overlay = doc.getElementById(overlayId);
 
-        /* The Modal Box */
-        .modal-content {{
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            width: 320px; /* Set a fixed width */
-            text-align: center;
-            z-index: 9999; /* Even higher stack order */
-            color: #333; /* Text color for the modal */
-        }}
+        if (!overlay) {{
+            overlay = doc.createElement('div');
+            overlay.id = overlayId;
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            overlay.style.zIndex = '9998';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.padding = '20px';
 
-        .modal-content img {{
-            width: 80px; /* Adjust GIF size as needed */
-            margin-bottom: 20px;
-        }}
-    </style>
+            const modal = doc.createElement('div');
+            modal.id = 'gw-loading-modal';
+            modal.style.backgroundColor = '#ffffff';
+            modal.style.padding = '30px';
+            modal.style.borderRadius = '8px';
+            modal.style.width = '320px';
+            modal.style.textAlign = 'center';
+            modal.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+            modal.style.zIndex = '9999';
 
-    <div class="overlay">
-        <div class="modal-content">
-            <img src="data:image/gif;base64,{gif_base64}" alt="loading...">
-            <p>{text}</p>
-        </div>
-    </div>
+            const img = doc.createElement('img');
+            img.src = 'data:image/gif;base64,{gif_base64}';
+            img.alt = 'loading...';
+            img.style.width = '80px';
+            img.style.marginBottom = '20px';
+
+            const textEl = doc.createElement('p');
+            textEl.id = textId;
+            textEl.style.margin = '0';
+            textEl.style.color = '#333';
+            textEl.style.fontSize = '1rem';
+            textEl.textContent = {safe_text};
+
+            modal.appendChild(img);
+            modal.appendChild(textEl);
+            overlay.appendChild(modal);
+            doc.body.appendChild(overlay);
+        }} else {{
+            const textEl = (window.parent && window.parent.document ? window.parent.document : document).getElementById(textId);
+            if (textEl) {{
+                textEl.textContent = {safe_text};
+            }}
+        }}
+    }})();
+    </script>
     """
 
 def show_loading_modal(steps, duration_per_step=1.5):
@@ -110,26 +130,29 @@ def show_loading_modal(steps, duration_per_step=1.5):
     if not gif_base64:
         return None
     
-    # Create a placeholder for the modal
-    loading_placeholder = st.empty()
-    
     try:
-        # Loop through each step
+        # Loop through each step and update the overlay text
         for text in steps:
-            # Generate the HTML with the current text
             modal_html = get_modal_html(gif_base64, text)
-            
-            # Update the placeholder's content
-            loading_placeholder.markdown(modal_html, unsafe_allow_html=True)
-            
-            # Wait before next step
+            components.html(modal_html, height=0, width=0)
             time.sleep(duration_per_step)
-    
     finally:
-        # Clear the placeholder (removes the modal)
-        loading_placeholder.empty()
-    
-    return loading_placeholder
+        # Remove overlay after completion
+        components.html(
+            """
+            <script>
+            (function() {
+                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                const overlay = doc.getElementById('gw-loading-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+            })();
+            </script>
+            """,
+            height=0,
+            width=0
+        )
 
 # === PAGE CONFIG ===
 st.set_page_config(
@@ -2847,9 +2870,32 @@ def render_submission_detail():
     market = detect_market(submission.submission_number, account.country)
     market_content = get_market_content(market)
     recs = market_content['ai_recommendations']  # Define at function level for use in multiple places
+    state = st.session_state.get('submission_state', {})
+
+    # Determine documents and optional AI status message for accepted German quote
+    documents_to_display = list(market_content['documents'])
+    is_moebel_case = submission.submission_number in ['SUB-2026-001', 'SUB-2026-001-DE']
+    submission_status_upper = (submission.status or '').upper()
+    if is_moebel_case and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False)):
+        if market == 'german':
+            documents_to_display = [
+                "📎 Moebel_Schmidt_Antrag_signed.pdf (4. Nov 2025 09:30)",
+                "📎 Appendix.pdf (4. Nov 2025 09:35)",
+                "📧 Email: Akzeptiert (4. Nov 2025 12:45)"
+            ]
+        else:
+            documents_to_display = [
+                "📎 FloorDecor_Application_Signed.pdf (Nov 4 2025 09:30)",
+                "📎 Appendix.pdf (Nov 4 2025 09:35)",
+                "📧 Email: Accepted (Nov 4 2025 12:45)"
+            ] 
     
     # Breadcrumb navigation
     if st.button("← Return to Submission List"):
+        if is_moebel_case and state.get('status', '').upper() == 'QUOTED':
+            update_submission_accepted(st.session_state.selected_submission, True)
+            st.session_state.submission_state['bind_available'] = True
+            st.session_state.submission_state['bind_suppressed'] = False
         st.session_state.current_screen = 'dashboard'
         st.rerun()
     
@@ -2859,7 +2905,6 @@ def render_submission_detail():
     st.markdown("---")
     
     # === SUBMISSION KPI ROW ===
-    state = st.session_state.submission_state
     submission_status_upper = (submission.status or state.get('status', '')).upper()
     state['status'] = submission.status or state.get('status', 'Triaged')
     if submission.completeness is not None:
@@ -2913,7 +2958,7 @@ def render_submission_detail():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        docs_list = "\n".join([f"- {doc}" for doc in market_content['documents']])
+        docs_list = "\n".join([f"- {doc}" for doc in documents_to_display])
         st.markdown(f"**Recent Documents:**\n{docs_list}")
     
     with col2:
@@ -2931,27 +2976,33 @@ def render_submission_detail():
         st.markdown("---")
         st.markdown("### 🤖 Smart Summary")
         
-        # AI Summary Box
         ai_summary = market_content['ai_summary']
-        risk_factors_html = ''.join([f'<li>{factor}</li>' for factor in ai_summary['risk_factors']])
+        if is_moebel_case and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False)):
+            summary_text = "<strong>Status Update:</strong> Der Kunde hat das Angebot unterschrieben und akzeptiert. Die Police ist bereit zur Bindung."
+        else:
+            risk_factors_html = ''.join([f'<li>{factor}</li>' for factor in ai_summary['risk_factors']])
+            summary_text = f"""
+            <p><strong>Business Overview:</strong> {ai_summary['business_overview']}</p>
+            <p><strong>Coverage Requested:</strong> {ai_summary['coverage_requested']}</p>
+            <p><strong>Loss History:</strong> {ai_summary['loss_history']}</p>
+            <p><strong>Risk Factors:</strong></p>
+            <ul style="padding-left: 1.5rem;">
+                {risk_factors_html}
+            </ul>
+            <p><strong>Recommendation:</strong> {ai_summary['recommendation']}</p>
+            """
         
         summary_html = f"""
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
                 <h4 style="color: white; margin-top: 0;">AI-Generated Submission Analysis</h4>
-                <p><strong>Business Overview:</strong> {ai_summary['business_overview']}</p>
-                <p><strong>Coverage Requested:</strong> {ai_summary['coverage_requested']}</p>
-                <p><strong>Loss History:</strong> {ai_summary['loss_history']}</p>
-                <p><strong>Risk Factors:</strong></p>
-                <ul style="padding-left: 1.5rem;">
-                    {risk_factors_html}
-                </ul>
-                <p><strong>Recommendation:</strong> {ai_summary['recommendation']}</p>
+                {summary_text}
             </div>
         """
         st.markdown(summary_html, unsafe_allow_html=True)
         
-        st.markdown("**Impact on Completeness:**")
-        st.info(market_content['completeness_impact'])
+        if not (is_moebel_case and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False))):
+            st.markdown("**Impact on Completeness:**")
+            st.info(market_content['completeness_impact'])
         
         col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 2])
         with col_accept1:
@@ -3081,7 +3132,7 @@ def render_submission_detail():
                         st.rerun()
         
         # === AI RECOMMENDATIONS (Conditionally rendered) ===
-        if state['is_recs_visible']:
+        if state['is_recs_visible'] and not (is_moebel_case and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False))):
             st.markdown("---")
             st.markdown("### 💡 Recommended Changes")
             
@@ -3112,6 +3163,9 @@ def render_submission_detail():
                     # Change widget key suffix to force checkbox refresh
                     import random
                     st.session_state.submission_state['widget_key_suffix'] = str(random.randint(1000, 9999))
+                    if 'generated' not in st.session_state.submission_state['quotes']:
+                        st.session_state.submission_state['quotes'].append('generated')
+                        st.session_state.submission_state['is_comparison_visible'] = False
                     
                     st.success("✅ Endorsements added!")
                     time.sleep(1)
@@ -3120,27 +3174,6 @@ def render_submission_detail():
             with col_rec2:
                 if st.button("❌ Dismiss", use_container_width=True, key="dismiss_recommendation"):
                     st.session_state.submission_state['is_recs_visible'] = False
-                    st.rerun()
-        
-        # === GENERATE NEW QUOTE BUTTON ===
-        # Check if any recommended endorsements have been selected
-        has_recommended = False
-        for rec in recs['items']:
-            if state['endorsements'].get(rec['name'], False):
-                has_recommended = True
-                break
-        
-        if has_recommended and len(state['quotes']) == 1:
-            st.markdown("---")
-            col_genq1, col_genq2, col_genq3 = st.columns([1, 2, 1])
-            with col_genq2:
-                if st.button("🔄 Generate Quote", use_container_width=True):
-                    show_loading_modal([
-                        "Analyzing Changes",
-                        "Calculating Quote with PricingCenter",
-                        "Finalizing Quote"
-                    ])
-                    st.session_state.submission_state['quotes'].append('generated')
                     st.rerun()
         
         # === GENERATED QUOTE CARD ===
@@ -3193,7 +3226,7 @@ def render_submission_detail():
             </div>
             """, unsafe_allow_html=True)
             
-            col_compare1, col_compare2 = st.columns(2)
+            col_compare1, col_compare2, col_bind = st.columns(3)
             
             with col_compare1:
                 if st.button("📊 Compare Quotes", use_container_width=True):
@@ -3206,7 +3239,7 @@ def render_submission_detail():
             
             with col_compare2:
                 if state['status'].upper() != 'QUOTED':
-                    if st.button("📧 Send to Broker", type="primary", use_container_width=True, key="send_generated_quote"):
+                    if st.button("📧 Quote", type="primary", use_container_width=True, key="send_generated_quote"):
                         show_loading_modal([
                             "Creating Broker Quote page",
                             "Sending Email",
@@ -3230,6 +3263,33 @@ def render_submission_detail():
                         
                         st.success("✅ Quote sent to broker successfully!")
                         time.sleep(2)
+                        st.rerun()
+
+            with col_bind:
+                if state.get('bind_available') and submission_status_upper == 'QUOTED' and bool(getattr(submission, 'accepted', False)):
+                    if st.button("✅ Bind Policy", type="primary", use_container_width=True, key="bind_generated_quote"):
+                        import random
+                        policy_number = random.randint(2800000000, 2899999999)
+                        show_loading_modal([
+                            "Sending data to PolicyCenter for Binding",
+                            f"Policy Bound: {policy_number}"
+                        ])
+
+                        update_submission_status(st.session_state.selected_submission, 'BOUND')
+
+                        # Update dashboard KPIs to reflect new bound policy
+                        st.session_state.dashboard_kpis['turnaround_time'] = 3.9
+                        st.session_state.dashboard_kpis['hit_ratio'] = 37
+                        st.session_state.dashboard_kpis['earned_premium'] = 1.85
+                        st.session_state.chart_data['hit_ratio_q4'] = 37
+                        st.session_state.chart_data['premium_q4'] = 1.85
+
+                        st.session_state.submission_state['status'] = 'Bound'
+                        st.session_state.submission_state['bind_available'] = False
+                        st.session_state.submission_state['bind_suppressed'] = False
+
+                        st.success("✅ Policy bound successfully! Metrics updated.")
+                        time.sleep(1)
                         st.rerun()
         
         # === QUOTE COMPARISON VIEW ===
